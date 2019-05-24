@@ -1,0 +1,14 @@
+language: go
+os:
+  - linux
+  - osx
+go:
+  # 1.10 is now best-effort; we recommend 1.11; 1.12 is in the wild but not the k8s recommended version
+  #- "1.10" gofmt changes mean this fails testing
+  - "1.11"
+  - "1.12"
+
+go_import_path: k8s.io/kops
+
+script:
+  - make travis-ci

@@ -1,0 +1,105 @@
+apiVersion: v1
+data:
+  username: # base64 encoded openstack project username
+  password: # base64 encoded openstack project password
+  project-name: # base64 encoded openstack project name
+  project-id: # base64 encoded openstack project id
+  access-id: # base64 encoded s3 access id
+  secret-key: # base64 encoded s3 secret key
+  auth-url: # base64 encoded openstack identity url
+  region-name: # base64 encoded openstack region name
+  user-domain: # base64 encoded openstack user domainname
+  project-domain: # base64 encoded openstack project domainname
+kind: Secret
+metadata:
+  name: openstack-secret
+  namespace: kube-system
+type: Opaque
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kops-autoscaler-openstack
+  namespace: kube-system
+  labels:
+    app: kops-autoscaler-openstack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kops-autoscaler-openstack
+  template:
+    metadata:
+      labels:
+        app: kops-autoscaler-openstack
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "1"
+      containers:
+      - name: kops-autoscaler-openstack
+        image: elisaoyj/kops-autoscaler-openstack:latest
+        env:
+        - name: KOPS_STATE_STORE
+          value: addresshere # FILL ME
+        - name: S3_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: access-id
+        - name: KOPS_FEATURE_FLAGS
+          value: AlphaAllowOpenstack,+EnableExternalCloudController
+        - name: S3_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: secret-key
+        - name: KOPS_CLUSTER_NAME
+          value: namehere # FILL ME
+        - name: OS_AUTH_URL
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: auth-url
+        - name: OS_PROJECT_ID
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: project-id
+        - name: OS_PROJECT_NAME
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: project-name
+        - name: OS_DOMAIN_NAME
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: user-domain
+        - name: OS_PROJECT_DOMAIN_ID
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: project-domain
+        - name: OS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: username
+        - name: OS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: password
+        - name: OS_REGION_NAME
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: region-name

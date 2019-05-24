@@ -1,0 +1,60 @@
+---
+kind: pipeline
+name: default
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/github.com/ElisaOyj/kops-autoscaler-openstack
+
+steps:
+- name: testing
+  image: golang:1.11
+  pull: always
+  commands:
+  - make deps
+  - make check
+  - make ensure
+  - make test
+
+- name: build
+  image: golang:1.11
+  pull: always
+  commands:
+  - make build-linux-amd64
+
+- name: testbuild
+  image: plugins/docker
+  settings:
+    dry_run: true
+    repo: docker.io/elisaoyj/kops-autoscaler-openstack
+    tags: latest
+  when:
+    branch:
+      excludes:
+      - master
+    event:
+    - pull_request
+
+- name: publish
+  image: plugins/docker
+  settings:
+    password:
+      from_secret: docker_password
+    registry: docker.io
+    repo: docker.io/elisaoyj/kops-autoscaler-openstack
+    tags:
+    - "${DRONE_COMMIT_SHA}"
+    - latest
+    username:
+      from_secret: docker_username
+  when:
+    branch:
+    - master
+    event:
+    - push
+
+...
