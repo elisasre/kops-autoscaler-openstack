@@ -1,0 +1,1 @@
+# kops-autoscaler-openstack
