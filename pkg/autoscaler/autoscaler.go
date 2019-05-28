@@ -44,19 +44,26 @@ func Run(opts *Options) error {
 		opts:      opts,
 		clientset: clientset,
 	}
+
+	fails := 0
 	for {
+		if fails > 10 {
+			return fmt.Errorf("Too many failed attempts")
+		}
 		time.Sleep(time.Duration(opts.Sleep) * time.Second)
 		glog.Infof("Executing...\n")
 
 		err := osASG.updateApplyCmd()
 		if err != nil {
 			glog.Errorf("Error updating applycmd %v", err)
+			fails++
 			continue
 		}
 
 		needsUpdate, err := osASG.dryRun()
 		if err != nil {
 			glog.Errorf("Error running dryrun %v", err)
+			fails++
 			continue
 		}
 
@@ -67,8 +74,11 @@ func Run(opts *Options) error {
 			err = osASG.update()
 			if err != nil {
 				glog.Errorf("Error updating cluster %v", err)
+				fails++
+				continue
 			}
 		}
+		fails = 0
 	}
 	return nil
 }
