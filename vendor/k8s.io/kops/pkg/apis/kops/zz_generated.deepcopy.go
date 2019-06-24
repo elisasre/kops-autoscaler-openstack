@@ -1657,6 +1657,11 @@ func (in *InstanceGroupSpec) DeepCopyInto(out *InstanceGroupSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.InstanceProtection != nil {
+		in, out := &in.InstanceProtection, &out.InstanceProtection
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
@@ -1842,6 +1847,11 @@ func (in *KubeAPIServerConfig) DeepCopyInto(out *KubeAPIServerConfig) {
 	}
 	if in.AdmissionControl != nil {
 		in, out := &in.AdmissionControl, &out.AdmissionControl
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.AppendAdmissionPlugins != nil {
+		in, out := &in.AppendAdmissionPlugins, &out.AppendAdmissionPlugins
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

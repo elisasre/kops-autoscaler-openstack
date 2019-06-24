@@ -45,6 +45,8 @@ type AutoscalingGroup struct {
 
 	// Granularity specifys the granularity of the metrics
 	Granularity *string
+	// InstanceProtection makes new instances in an autoscaling group protected from scale in
+	InstanceProtection *bool
 	// LaunchConfiguration is the launch configuration for the autoscaling group
 	LaunchConfiguration *LaunchConfiguration
 	// LaunchTemplate is the launch template for the asg
@@ -72,6 +74,8 @@ type AutoscalingGroup struct {
 	// MixedSpotInstancePools is the number of Spot pools to use to allocate your Spot capacity (defaults to 2)
 	// pools are determined from the different instance types in the Overrides array of LaunchTemplate
 	MixedSpotInstancePools *int64
+	// MixedSpotMaxPrice is the maximum price per unit hour you are willing to pay for a Spot Instance
+	MixedSpotMaxPrice *string
 	// Subnets is a collection of subnets to attach the nodes to
 	Subnets []*Subnet
 	// SuspendProcesses
@@ -141,6 +145,7 @@ func (e *AutoscalingGroup) Find(c *fi.Context) (*AutoscalingGroup, error) {
 			actual.MixedOnDemandBase = mpd.OnDemandBaseCapacity
 			actual.MixedSpotAllocationStrategy = mpd.SpotAllocationStrategy
 			actual.MixedSpotInstancePools = mpd.SpotInstancePools
+			actual.MixedSpotMaxPrice = mpd.SpotMaxPrice
 		}
 
 		if g.MixedInstancesPolicy.LaunchTemplate != nil {
@@ -167,6 +172,10 @@ func (e *AutoscalingGroup) Find(c *fi.Context) (*AutoscalingGroup, error) {
 
 	// Avoid spurious changes
 	actual.Lifecycle = e.Lifecycle
+
+	if g.NewInstancesProtectedFromScaleIn != nil {
+		actual.InstanceProtection = g.NewInstancesProtectedFromScaleIn
+	}
 
 	return actual, nil
 }
@@ -272,6 +281,7 @@ func (v *AutoscalingGroup) RenderAWS(t *awsup.AWSAPITarget, a, e, changes *Autos
 					OnDemandBaseCapacity:                e.MixedOnDemandBase,
 					SpotAllocationStrategy:              e.MixedSpotAllocationStrategy,
 					SpotInstancePools:                   e.MixedSpotInstancePools,
+					SpotMaxPrice:                        e.MixedSpotMaxPrice,
 				},
 				LaunchTemplate: &autoscaling.LaunchTemplate{
 					LaunchTemplateSpecification: &autoscaling.LaunchTemplateSpecification{LaunchTemplateName: e.LaunchTemplate.ID},
@@ -311,6 +321,11 @@ func (v *AutoscalingGroup) RenderAWS(t *awsup.AWSAPITarget, a, e, changes *Autos
 				return fmt.Errorf("error suspending processes: %v", err)
 			}
 		}
+
+		if e.InstanceProtection != nil {
+			request.NewInstancesProtectedFromScaleIn = e.InstanceProtection
+		}
+
 	} else {
 		// @logic: else we have found a autoscaling group and we need to evaluate the difference
 		request := &autoscaling.UpdateAutoScalingGroupInput{
@@ -357,6 +372,10 @@ func (v *AutoscalingGroup) RenderAWS(t *awsup.AWSAPITarget, a, e, changes *Autos
 		if changes.MixedSpotInstancePools != nil {
 			setup(request).InstancesDistribution.SpotInstancePools = e.MixedSpotInstancePools
 			changes.MixedSpotInstancePools = nil
+		}
+		if changes.MixedSpotMaxPrice != nil {
+			setup(request).InstancesDistribution.SpotMaxPrice = e.MixedSpotMaxPrice
+			changes.MixedSpotMaxPrice = nil
 		}
 		if changes.MixedInstanceOverrides != nil {
 			if setup(request).LaunchTemplate == nil {
@@ -443,6 +462,11 @@ func (v *AutoscalingGroup) RenderAWS(t *awsup.AWSAPITarget, a, e, changes *Autos
 			changes.SuspendProcesses = nil
 		}
 
+		if changes.InstanceProtection != nil {
+			request.NewInstancesProtectedFromScaleIn = e.InstanceProtection
+			changes.InstanceProtection = nil
+		}
+
 		empty := &AutoscalingGroup{}
 		if !reflect.DeepEqual(empty, changes) {
 			klog.Warningf("cannot apply changes to AutoScalingGroup: %v", changes)
@@ -488,6 +512,9 @@ func (e *AutoscalingGroup) UseMixedInstancesPolicy() bool {
 		return true
 	}
 	if len(e.MixedInstanceOverrides) > 0 {
+		return true
+	}
+	if e.MixedSpotMaxPrice != nil {
 		return true
 	}
 
@@ -596,7 +623,7 @@ type terraformAutoscalingInstanceDistribution struct {
 	// SpotInstancePool is the number of pools
 	SpotInstancePool *int64 `json:"spot_instance_pools,omitempty"`
 	// SpotMaxPrice is the max bid on spot instance, defaults to demand value
-	SpotMaxPrice *float64 `json:"spot_max_price,omitempty"`
+	SpotMaxPrice *string `json:"spot_max_price,omitempty"`
 }
 
 type terraformMixedInstancesPolicy struct {
@@ -617,6 +644,7 @@ type terraformAutoscalingGroup struct {
 	MetricsGranularity      *string                          `json:"metrics_granularity,omitempty"`
 	EnabledMetrics          []*string                        `json:"enabled_metrics,omitempty"`
 	SuspendedProcesses      []*string                        `json:"suspended_processes,omitempty"`
+	InstanceProtection      *bool                            `json:"protect_from_scale_in,omitempty"`
 }
 
 // RenderTerraform is responsible for rendering the terraform codebase
@@ -627,6 +655,7 @@ func (_ *AutoscalingGroup) RenderTerraform(t *terraform.TerraformTarget, a, e, c
 		MaxSize:            e.MaxSize,
 		MetricsGranularity: e.Granularity,
 		EnabledMetrics:     aws.StringSlice(e.Metrics),
+		InstanceProtection: e.InstanceProtection,
 	}
 
 	for _, s := range e.Subnets {
@@ -662,6 +691,7 @@ func (_ *AutoscalingGroup) RenderTerraform(t *terraform.TerraformTarget, a, e, c
 						OnDemandPercentageAboveBaseCapacity: e.MixedOnDemandAboveBase,
 						SpotAllocationStrategy:              e.MixedSpotAllocationStrategy,
 						SpotInstancePool:                    e.MixedSpotInstancePools,
+						SpotMaxPrice:                        e.MixedSpotMaxPrice,
 					},
 				},
 			},
@@ -672,39 +702,44 @@ func (_ *AutoscalingGroup) RenderTerraform(t *terraform.TerraformTarget, a, e, c
 		}
 	}
 
+	role := ""
+	for k := range e.Tags {
+		if strings.HasPrefix(k, CloudTagInstanceGroupRolePrefix) {
+			suffix := strings.TrimPrefix(k, CloudTagInstanceGroupRolePrefix)
+			if role != "" && role != suffix {
+				return fmt.Errorf("Found multiple role tags: %q vs %q", role, suffix)
+			}
+			role = suffix
+		}
+	}
+
 	if e.LaunchConfiguration != nil {
 		tf.LaunchConfigurationName = e.LaunchConfiguration.TerraformLink()
-
 		// Create TF output variable with security group ids
 		// This is in the launch configuration, but the ASG has the information about the instance group type
-
-		role := ""
-		for k := range e.Tags {
-			if strings.HasPrefix(k, CloudTagInstanceGroupRolePrefix) {
-				suffix := strings.TrimPrefix(k, CloudTagInstanceGroupRolePrefix)
-				if role != "" && role != suffix {
-					return fmt.Errorf("Found multiple role tags: %q vs %q", role, suffix)
-				}
-				role = suffix
-			}
-		}
-
 		if role != "" {
 			for _, sg := range e.LaunchConfiguration.SecurityGroups {
 				if err := t.AddOutputVariableArray(role+"_security_group_ids", sg.TerraformLink()); err != nil {
 					return err
 				}
 			}
-			if err := t.AddOutputVariableArray(role+"_autoscaling_group_ids", e.TerraformLink()); err != nil {
+		}
+	} else if e.LaunchTemplate != nil && role != "" {
+		for _, sg := range e.LaunchTemplate.SecurityGroups {
+			if err := t.AddOutputVariableArray(role+"_security_group_ids", sg.TerraformLink()); err != nil {
 				return err
 			}
 		}
-
-		if role == "node" {
-			for _, s := range e.Subnets {
-				if err := t.AddOutputVariableArray(role+"_subnet_ids", s.TerraformLink()); err != nil {
-					return err
-				}
+	}
+	if role != "" {
+		if err := t.AddOutputVariableArray(role+"_autoscaling_group_ids", e.TerraformLink()); err != nil {
+			return err
+		}
+	}
+	if role == "node" {
+		for _, s := range e.Subnets {
+			if err := t.AddOutputVariableArray(role+"_subnet_ids", s.TerraformLink()); err != nil {
+				return err
 			}
 		}
 	}
@@ -765,7 +800,7 @@ type cloudformationAutoscalingInstanceDistribution struct {
 	// SpotInstancePool is the number of pools
 	SpotInstancePool *int64 `json:"SpotInstancePool,omitempty"`
 	// SpotMaxPrice is the max bid on spot instance, defaults to demand value
-	SpotMaxPrice *float64 `json:"SpotMaxPrice,omitempty"`
+	SpotMaxPrice *string `json:"SpotMaxPrice,omitempty"`
 }
 
 type cloudformationMixedInstancesPolicy struct {
@@ -815,6 +850,7 @@ func (_ *AutoscalingGroup) RenderCloudformation(t *cloudformation.Cloudformation
 				OnDemandPercentageAboveBaseCapacity: e.MixedOnDemandAboveBase,
 				SpotAllocationStrategy:              e.MixedSpotAllocationStrategy,
 				SpotInstancePool:                    e.MixedSpotInstancePools,
+				SpotMaxPrice:                        e.MixedSpotMaxPrice,
 			},
 		}
 
