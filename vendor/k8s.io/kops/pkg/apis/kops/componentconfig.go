@@ -266,7 +266,7 @@ type KubeAPIServerConfig struct {
 	// Deprecated: AdmissionControl is a list of admission controllers to use
 	AdmissionControl []string `json:"admissionControl,omitempty" flag:"admission-control"`
 	// AppendAdmissionPlugins appends list of enabled admission plugins
-	AppendAdmissionPlugins []string `json:"appendAdmissionPlugins,omitempty" flag:"append-admission-plugins"`
+	AppendAdmissionPlugins []string `json:"appendAdmissionPlugins,omitempty"`
 	// EnableAdmissionPlugins is a list of enabled admission plugins
 	EnableAdmissionPlugins []string `json:"enableAdmissionPlugins,omitempty" flag:"enable-admission-plugins"`
 	// DisableAdmissionPlugins is a list of disabled admission plugins
@@ -504,6 +504,10 @@ type KubeControllerManagerConfig struct {
 	// MinResyncPeriod indicates the resync period in reflectors.
 	// The resync period will be random between MinResyncPeriod and 2*MinResyncPeriod. (default 12h0m0s)
 	MinResyncPeriod string `json:"minResyncPeriod,omitempty" flag:"min-resync-period"`
+	// KubeAPIQPS QPS to use while talking with kubernetes apiserver. (default 20)
+	KubeAPIQPS *float32 `json:"kubeAPIQPS,omitempty" flag:"kube-api-qps"`
+	// KubeAPIBurst Burst to use while talking with kubernetes apiserver. (default 30)
+	KubeAPIBurst *int32 `json:"kubeAPIBurst,omitempty" flag:"kube-api-burst"`
 }
 
 // CloudControllerManagerConfig is the configuration of the cloud controller

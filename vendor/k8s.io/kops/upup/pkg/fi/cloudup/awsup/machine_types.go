@@ -306,10 +306,40 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	},
 
 	{
+		Name:              "c5.12xlarge",
+		MemoryGB:          96,
+		ECU:               188,
+		Cores:             48,
+		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
 		Name:              "c5.18xlarge",
 		MemoryGB:          144,
 		ECU:               281,
 		Cores:             72,
+		InstanceENIs:      15,
+		InstanceIPsPerENI: 50,
+		EphemeralDisks:    nil,
+	},
+
+	{
+		Name:              "c5.24xlarge",
+		MemoryGB:          192,
+		ECU:               375,
+		Cores:             96,
+		InstanceENIs:      15,
+		InstanceIPsPerENI: 50,
+		EphemeralDisks:    nil,
+	},
+
+	{
+		Name:              "c5.metal",
+		MemoryGB:          192,
+		ECU:               375,
+		Cores:             96,
 		InstanceENIs:      15,
 		InstanceIPsPerENI: 50,
 		EphemeralDisks:    nil,
@@ -1051,11 +1081,31 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	},
 
 	{
+		Name:              "m5.8xlarge",
+		MemoryGB:          128,
+		ECU:               131,
+		Cores:             32,
+		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
 		Name:              "m5.12xlarge",
 		MemoryGB:          192,
 		ECU:               173,
 		Cores:             48,
 		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
+		Name:              "m5.16xlarge",
+		MemoryGB:          256,
+		ECU:               262,
+		Cores:             64,
+		InstanceENIs:      15,
 		InstanceIPsPerENI: 30,
 		EphemeralDisks:    nil,
 	},
@@ -1122,11 +1172,31 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	},
 
 	{
+		Name:              "m5a.8xlarge",
+		MemoryGB:          128,
+		ECU:               0,
+		Cores:             32,
+		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
 		Name:              "m5a.12xlarge",
 		MemoryGB:          192,
 		ECU:               0,
 		Cores:             48,
 		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
+		Name:              "m5a.16xlarge",
+		MemoryGB:          256,
+		ECU:               0,
+		Cores:             64,
+		InstanceENIs:      15,
 		InstanceIPsPerENI: 30,
 		EphemeralDisks:    nil,
 	},
@@ -1244,6 +1314,16 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	},
 
 	{
+		Name:              "m5d.8xlarge",
+		MemoryGB:          128,
+		ECU:               131,
+		Cores:             32,
+		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    []int{600, 600},
+	},
+
+	{
 		Name:              "m5d.12xlarge",
 		MemoryGB:          192,
 		ECU:               173,
@@ -1251,6 +1331,16 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 		InstanceENIs:      8,
 		InstanceIPsPerENI: 30,
 		EphemeralDisks:    []int{900, 900},
+	},
+
+	{
+		Name:              "m5d.16xlarge",
+		MemoryGB:          256,
+		ECU:               262,
+		Cores:             64,
+		InstanceENIs:      15,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    []int{600, 600, 600, 600},
 	},
 
 	{
@@ -1507,12 +1597,32 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	},
 
 	{
+		Name:              "r5.8xlarge",
+		MemoryGB:          256,
+		ECU:               131,
+		Cores:             32,
+		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
 		Name:              "r5.12xlarge",
 		MemoryGB:          384,
 		ECU:               173,
 		Cores:             48,
 		InstanceENIs:      8,
 		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
+		Name:              "r5.16xlarge",
+		MemoryGB:          512,
+		ECU:               262,
+		Cores:             64,
+		InstanceENIs:      15,
+		InstanceIPsPerENI: 50,
 		EphemeralDisks:    nil,
 	},
 
@@ -1578,12 +1688,32 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	},
 
 	{
+		Name:              "r5a.8xlarge",
+		MemoryGB:          256,
+		ECU:               0,
+		Cores:             32,
+		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
 		Name:              "r5a.12xlarge",
 		MemoryGB:          384,
 		ECU:               0,
 		Cores:             48,
 		InstanceENIs:      8,
 		InstanceIPsPerENI: 30,
+		EphemeralDisks:    nil,
+	},
+
+	{
+		Name:              "r5a.16xlarge",
+		MemoryGB:          512,
+		ECU:               0,
+		Cores:             64,
+		InstanceENIs:      15,
+		InstanceIPsPerENI: 50,
 		EphemeralDisks:    nil,
 	},
 
@@ -1700,6 +1830,16 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	},
 
 	{
+		Name:              "r5d.8xlarge",
+		MemoryGB:          256,
+		ECU:               131,
+		Cores:             32,
+		InstanceENIs:      8,
+		InstanceIPsPerENI: 30,
+		EphemeralDisks:    []int{600, 600},
+	},
+
+	{
 		Name:              "r5d.12xlarge",
 		MemoryGB:          384,
 		ECU:               173,
@@ -1707,6 +1847,16 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 		InstanceENIs:      8,
 		InstanceIPsPerENI: 30,
 		EphemeralDisks:    []int{900, 900},
+	},
+
+	{
+		Name:              "r5d.16xlarge",
+		MemoryGB:          512,
+		ECU:               262,
+		Cores:             64,
+		InstanceENIs:      15,
+		InstanceIPsPerENI: 50,
+		EphemeralDisks:    []int{600, 600, 600, 600},
 	},
 
 	{
