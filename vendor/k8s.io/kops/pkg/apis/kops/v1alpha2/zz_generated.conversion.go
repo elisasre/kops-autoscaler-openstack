@@ -1072,6 +1072,10 @@ func Convert_kops_AuthorizationSpec_To_v1alpha2_AuthorizationSpec(in *kops.Autho
 
 func autoConvert_v1alpha2_AwsAuthenticationSpec_To_kops_AwsAuthenticationSpec(in *AwsAuthenticationSpec, out *kops.AwsAuthenticationSpec, s conversion.Scope) error {
 	out.Image = in.Image
+	out.MemoryRequest = in.MemoryRequest
+	out.CPURequest = in.CPURequest
+	out.MemoryLimit = in.MemoryLimit
+	out.CPULimit = in.CPULimit
 	return nil
 }
 
@@ -1082,6 +1086,10 @@ func Convert_v1alpha2_AwsAuthenticationSpec_To_kops_AwsAuthenticationSpec(in *Aw
 
 func autoConvert_kops_AwsAuthenticationSpec_To_v1alpha2_AwsAuthenticationSpec(in *kops.AwsAuthenticationSpec, out *AwsAuthenticationSpec, s conversion.Scope) error {
 	out.Image = in.Image
+	out.MemoryRequest = in.MemoryRequest
+	out.CPURequest = in.CPURequest
+	out.MemoryLimit = in.MemoryLimit
+	out.CPULimit = in.CPULimit
 	return nil
 }
 
@@ -3198,6 +3206,7 @@ func autoConvert_v1alpha2_KubeAPIServerConfig_To_kops_KubeAPIServerConfig(in *Ku
 	out.AppendAdmissionPlugins = in.AppendAdmissionPlugins
 	out.EnableAdmissionPlugins = in.EnableAdmissionPlugins
 	out.DisableAdmissionPlugins = in.DisableAdmissionPlugins
+	out.AdmissionControlConfigFile = in.AdmissionControlConfigFile
 	out.ServiceClusterIPRange = in.ServiceClusterIPRange
 	out.ServiceNodePortRange = in.ServiceNodePortRange
 	out.EtcdServers = in.EtcdServers
@@ -3248,6 +3257,9 @@ func autoConvert_v1alpha2_KubeAPIServerConfig_To_kops_KubeAPIServerConfig(in *Ku
 	out.AuthenticationTokenWebhookConfigFile = in.AuthenticationTokenWebhookConfigFile
 	out.AuthenticationTokenWebhookCacheTTL = in.AuthenticationTokenWebhookCacheTTL
 	out.AuthorizationMode = in.AuthorizationMode
+	out.AuthorizationWebhookConfigFile = in.AuthorizationWebhookConfigFile
+	out.AuthorizationWebhookCacheAuthorizedTTL = in.AuthorizationWebhookCacheAuthorizedTTL
+	out.AuthorizationWebhookCacheUnauthorizedTTL = in.AuthorizationWebhookCacheUnauthorizedTTL
 	out.AuthorizationRBACSuperUser = in.AuthorizationRBACSuperUser
 	out.ExperimentalEncryptionProviderConfig = in.ExperimentalEncryptionProviderConfig
 	out.RequestheaderUsernameHeaders = in.RequestheaderUsernameHeaders
@@ -3288,6 +3300,7 @@ func autoConvert_kops_KubeAPIServerConfig_To_v1alpha2_KubeAPIServerConfig(in *ko
 	out.AppendAdmissionPlugins = in.AppendAdmissionPlugins
 	out.EnableAdmissionPlugins = in.EnableAdmissionPlugins
 	out.DisableAdmissionPlugins = in.DisableAdmissionPlugins
+	out.AdmissionControlConfigFile = in.AdmissionControlConfigFile
 	out.ServiceClusterIPRange = in.ServiceClusterIPRange
 	out.ServiceNodePortRange = in.ServiceNodePortRange
 	out.EtcdServers = in.EtcdServers
@@ -3338,6 +3351,9 @@ func autoConvert_kops_KubeAPIServerConfig_To_v1alpha2_KubeAPIServerConfig(in *ko
 	out.AuthenticationTokenWebhookConfigFile = in.AuthenticationTokenWebhookConfigFile
 	out.AuthenticationTokenWebhookCacheTTL = in.AuthenticationTokenWebhookCacheTTL
 	out.AuthorizationMode = in.AuthorizationMode
+	out.AuthorizationWebhookConfigFile = in.AuthorizationWebhookConfigFile
+	out.AuthorizationWebhookCacheAuthorizedTTL = in.AuthorizationWebhookCacheAuthorizedTTL
+	out.AuthorizationWebhookCacheUnauthorizedTTL = in.AuthorizationWebhookCacheUnauthorizedTTL
 	out.AuthorizationRBACSuperUser = in.AuthorizationRBACSuperUser
 	out.ExperimentalEncryptionProviderConfig = in.ExperimentalEncryptionProviderConfig
 	out.RequestheaderUsernameHeaders = in.RequestheaderUsernameHeaders
@@ -3575,6 +3591,7 @@ func autoConvert_v1alpha2_KubeSchedulerConfig_To_kops_KubeSchedulerConfig(in *Ku
 	}
 	out.UsePolicyConfigMap = in.UsePolicyConfigMap
 	out.FeatureGates = in.FeatureGates
+	out.MaxPersistentVolumes = in.MaxPersistentVolumes
 	return nil
 }
 
@@ -3598,6 +3615,7 @@ func autoConvert_kops_KubeSchedulerConfig_To_v1alpha2_KubeSchedulerConfig(in *ko
 	}
 	out.UsePolicyConfigMap = in.UsePolicyConfigMap
 	out.FeatureGates = in.FeatureGates
+	out.MaxPersistentVolumes = in.MaxPersistentVolumes
 	return nil
 }
 
@@ -3859,6 +3877,7 @@ func autoConvert_v1alpha2_LoadBalancerAccessSpec_To_kops_LoadBalancerAccessSpec(
 	out.AdditionalSecurityGroups = in.AdditionalSecurityGroups
 	out.UseForInternalApi = in.UseForInternalApi
 	out.SSLCertificate = in.SSLCertificate
+	out.CrossZoneLoadBalancing = in.CrossZoneLoadBalancing
 	return nil
 }
 
@@ -3874,6 +3893,7 @@ func autoConvert_kops_LoadBalancerAccessSpec_To_v1alpha2_LoadBalancerAccessSpec(
 	out.AdditionalSecurityGroups = in.AdditionalSecurityGroups
 	out.UseForInternalApi = in.UseForInternalApi
 	out.SSLCertificate = in.SSLCertificate
+	out.CrossZoneLoadBalancing = in.CrossZoneLoadBalancing
 	return nil
 }
 

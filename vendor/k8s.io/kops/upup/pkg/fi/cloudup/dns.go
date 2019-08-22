@@ -38,6 +38,8 @@ const (
 	// https://en.wikipedia.org/wiki/Reserved_IP_addresses
 	PlaceholderIP  = "203.0.113.123"
 	PlaceholderTTL = 10
+	// DigitalOcean's DNS servers require a certain minimum TTL (it's 30), keeping 60 here.
+	PlaceholderTTLDigitialOcean = 60
 )
 
 func findZone(cluster *kops.Cluster, cloud fi.Cloud) (dnsprovider.Zone, error) {
@@ -228,7 +230,12 @@ func precreateDNS(cluster *kops.Cluster, cloud fi.Cloud) error {
 
 		klog.V(2).Infof("Pre-creating DNS record %s => %s", dnsHostname, PlaceholderIP)
 
-		changeset.Add(rrs.New(dnsHostname, []string{PlaceholderIP}, PlaceholderTTL, rrstype.A))
+		if cloud.ProviderID() == kops.CloudProviderDO {
+			changeset.Add(rrs.New(dnsHostname, []string{PlaceholderIP}, PlaceholderTTLDigitialOcean, rrstype.A))
+		} else {
+			changeset.Add(rrs.New(dnsHostname, []string{PlaceholderIP}, PlaceholderTTL, rrstype.A))
+		}
+
 		created = append(created, dnsHostname)
 	}
 
@@ -262,6 +269,9 @@ func buildPrecreateDNSHostnames(cluster *kops.Cluster) []string {
 	}
 
 	for _, etcdCluster := range cluster.Spec.EtcdClusters {
+		if etcdCluster.Provider == kops.EtcdProviderTypeManager {
+			continue
+		}
 		etcClusterName := "etcd-" + etcdCluster.Name
 		if etcdCluster.Name == "main" {
 			// Special case

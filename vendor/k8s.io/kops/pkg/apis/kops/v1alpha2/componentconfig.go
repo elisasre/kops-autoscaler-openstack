@@ -271,6 +271,8 @@ type KubeAPIServerConfig struct {
 	EnableAdmissionPlugins []string `json:"enableAdmissionPlugins,omitempty" flag:"enable-admission-plugins"`
 	// DisableAdmissionPlugins is a list of disabled admission plugins
 	DisableAdmissionPlugins []string `json:"disableAdmissionPlugins,omitempty" flag:"disable-admission-plugins"`
+	// AdmissionControlConfigFile is the location of the admission-control-config-file
+	AdmissionControlConfigFile string `json:"admissionControlConfigFile,omitempty" flag:"admission-control-config-file"`
 	// ServiceClusterIPRange is the service address range
 	ServiceClusterIPRange string `json:"serviceClusterIPRange,omitempty" flag:"service-cluster-ip-range"`
 	// Passed as --service-node-port-range to kube-apiserver. Expects 'startPort-endPort' format e.g. 30000-33000
@@ -383,6 +385,12 @@ type KubeAPIServerConfig struct {
 	AuthenticationTokenWebhookCacheTTL *metav1.Duration `json:"authenticationTokenWebhookCacheTtl,omitempty" flag:"authentication-token-webhook-cache-ttl"`
 	// AuthorizationMode is the authorization mode the kubeapi is running in
 	AuthorizationMode *string `json:"authorizationMode,omitempty" flag:"authorization-mode"`
+	// File with webhook configuration for authorization in kubeconfig format. The API server will query the remote service to determine whether to authorize the request.
+	AuthorizationWebhookConfigFile *string `json:"authorizationWebhookConfigFile,omitempty" flag:"authorization-webhook-config-file"`
+	// The duration to cache authorized responses from the webhook token authorizer. Default is 5m. (default 5m0s)
+	AuthorizationWebhookCacheAuthorizedTTL *metav1.Duration `json:"authorizationWebhookCacheAuthorizedTtl,omitempty" flag:"authorization-webhook-cache-authorized-ttl"`
+	// The duration to cache authorized responses from the webhook token authorizer. Default is 30s. (default 30s)
+	AuthorizationWebhookCacheUnauthorizedTTL *metav1.Duration `json:"authorizationWebhookCacheUnauthorizedTtl,omitempty" flag:"authorization-webhook-cache-unauthorized-ttl"`
 	// AuthorizationRBACSuperUser is the name of the superuser for default rbac
 	AuthorizationRBACSuperUser *string `json:"authorizationRbacSuperUser,omitempty" flag:"authorization-rbac-super-user"`
 	// ExperimentalEncryptionProviderConfig enables encryption at rest for secrets.
@@ -551,6 +559,11 @@ type KubeSchedulerConfig struct {
 	UsePolicyConfigMap *bool `json:"usePolicyConfigMap,omitempty"`
 	// FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.
 	FeatureGates map[string]string `json:"featureGates,omitempty" flag:"feature-gates"`
+	// MaxPersistentVolumes changes the maximum number of persistent volumes the scheduler will scheduler onto the same
+	// node. Only takes into affect if value is positive. This corresponds to the KUBE_MAX_PD_VOLS environment variable,
+	// which has been supported as far back as Kubernetes 1.7. The default depends on the version and the cloud provider
+	// as outlined: https://kubernetes.io/docs/concepts/storage/storage-limits/
+	MaxPersistentVolumes *int32 `json:"maxPersistentVolumes,omitempty"`
 }
 
 // LeaderElectionConfiguration defines the configuration of leader election
