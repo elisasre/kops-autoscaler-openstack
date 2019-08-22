@@ -14,16 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package do
+package utils
 
 import (
-	"k8s.io/kops/pkg/resources/digitalocean"
-	"k8s.io/kops/upup/pkg/fi"
+	"crypto/sha1"
+	"encoding/hex"
 )
 
-const TagNameEtcdClusterPrefix = "k8s.io/etcd/"
-const TagNameRolePrefix = "k8s.io/role/"
-
-func NewDOCloud(region string) (fi.Cloud, error) {
-	return digitalocean.NewCloud(region)
+// HashString Takes String and returns a sha1 hash represented as a string
+func HashString(s string) (string, error) {
+	h := sha1.New()
+	_, err := h.Write([]byte(s))
+	if err != nil {
+		return "", err
+	}
+	sha := h.Sum(nil)                 // "sha" is uint8 type, encoded in base16
+	shaStr := hex.EncodeToString(sha) // String representation
+	return shaStr, nil
 }

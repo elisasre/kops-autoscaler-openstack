@@ -12,7 +12,7 @@ workspace:
 
 steps:
 - name: testing
-  image: golang:1.11
+  image: golang:1.12
   pull: always
   commands:
   - make deps
@@ -21,7 +21,7 @@ steps:
   - make test
 
 - name: build
-  image: golang:1.11
+  image: golang:1.12
   pull: always
   commands:
   - make build-linux-amd64

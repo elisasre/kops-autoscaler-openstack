@@ -1203,7 +1203,7 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:a9df5a42d6228e7d6eec7cd70e6393d2193dbc05b24088850f60f5a38a3cceeb"
+  digest = "1:35f4356be5cf6f32c1ae6c6df4524494d4a1131aaf5c42eb9455a1d20842da92"
   name = "k8s.io/kops"
   packages = [
     ".",
@@ -1300,13 +1300,14 @@
     "util/pkg/exec",
     "util/pkg/hashing",
     "util/pkg/maps",
+    "util/pkg/proxy",
     "util/pkg/reflectutils",
     "util/pkg/slice",
     "util/pkg/text",
     "util/pkg/vfs",
   ]
   pruneopts = "UT"
-  revision = "be5fb9019ab3e51b3314eeacc73458724484c7b7"
+  revision = "c957fd3df875aecb78095e7d5e7dbae1c3321dc4"
 
 [[projects]]
   branch = "master"
