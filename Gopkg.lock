@@ -1203,7 +1203,7 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:35f4356be5cf6f32c1ae6c6df4524494d4a1131aaf5c42eb9455a1d20842da92"
+  digest = "1:4d686bcae62ed5a1be41c8c09896ec2536a4bce80744b96413f581564f62255c"
   name = "k8s.io/kops"
   packages = [
     ".",
@@ -1307,7 +1307,7 @@
     "util/pkg/vfs",
   ]
   pruneopts = "UT"
-  revision = "c957fd3df875aecb78095e7d5e7dbae1c3321dc4"
+  revision = "783f627acb92a48e23f9f5a182f1a7d2c6758654"
 
 [[projects]]
   branch = "master"

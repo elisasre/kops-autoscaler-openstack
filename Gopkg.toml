@@ -4,7 +4,7 @@
 
 [[override]]
   name = "k8s.io/kops"
-  revision = "c957fd3df875aecb78095e7d5e7dbae1c3321dc4"
+  revision = "783f627acb92a48e23f9f5a182f1a7d2c6758654"
 
 [[override]]
   name = "k8s.io/api"
