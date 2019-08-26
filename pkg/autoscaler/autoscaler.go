@@ -47,7 +47,7 @@ func Run(opts *Options) error {
 
 	fails := 0
 	for {
-		if fails > 10 {
+		if fails > 5 {
 			return fmt.Errorf("Too many failed attempts")
 		}
 		time.Sleep(time.Duration(opts.Sleep) * time.Second)
