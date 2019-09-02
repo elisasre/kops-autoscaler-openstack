@@ -59,7 +59,7 @@ func Execute() {
 
 func validate(options *autoscaler.Options) error {
 	if options.ClusterName == "" {
-		return fmt.Errorf("Please set NAME to env variable or as start flag")
+		return fmt.Errorf("Please set KOPS_CLUSTER_NAME to env variable or as start flag")
 	}
 	if options.StateStore == "" {
 		return fmt.Errorf("Please set KOPS_STATE_STORE to env variable or as start flag")

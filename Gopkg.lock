@@ -1399,6 +1399,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/golang/glog",
+    "github.com/gophercloud/gophercloud/openstack/compute/v2/servers",
     "github.com/spf13/cobra",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/kops/pkg/apis/kops",
@@ -1406,6 +1407,7 @@
     "k8s.io/kops/pkg/client/simple/vfsclientset",
     "k8s.io/kops/upup/pkg/fi",
     "k8s.io/kops/upup/pkg/fi/cloudup",
+    "k8s.io/kops/upup/pkg/fi/cloudup/openstack",
     "k8s.io/kops/util/pkg/reflectutils",
     "k8s.io/kops/util/pkg/vfs",
   ]

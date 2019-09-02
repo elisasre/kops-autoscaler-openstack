@@ -2,17 +2,17 @@ package autoscaler
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kops/pkg/apis/kops"
 	"k8s.io/kops/pkg/client/simple"
 	"k8s.io/kops/pkg/client/simple/vfsclientset"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup"
-	"k8s.io/kops/util/pkg/reflectutils"
+	"k8s.io/kops/upup/pkg/fi/cloudup/openstack"
 	"k8s.io/kops/util/pkg/vfs"
 )
 
@@ -30,6 +30,7 @@ type openstackASG struct {
 	ApplyCmd  *cloudup.ApplyClusterCmd
 	clientset simple.Clientset
 	opts      *Options
+	Cloud     openstack.OpenstackCloud
 }
 
 // Run will execute cluster check in loop periodically
@@ -98,6 +99,14 @@ func (osASG *openstackASG) updateApplyCmd() error {
 		instanceGroups = append(instanceGroups, &list.Items[i])
 	}
 
+	if osASG.Cloud == nil {
+		cloud, err := cloudup.BuildCloud(cluster)
+		if err != nil {
+			return err
+		}
+		osASG.Cloud = cloud.(openstack.OpenstackCloud)
+	}
+
 	osASG.ApplyCmd = &cloudup.ApplyClusterCmd{
 		Clientset:      osASG.clientset,
 		Cluster:        cluster,
@@ -110,44 +119,42 @@ func (osASG *openstackASG) updateApplyCmd() error {
 	return nil
 }
 
+// dryRun scans do we need run update or not
+// currently it supports scaling up and down instances
 func (osASG *openstackASG) dryRun() (bool, error) {
-	osASG.ApplyCmd.TargetName = cloudup.TargetDryRun
-	osASG.ApplyCmd.DryRun = true
-
-	if err := osASG.ApplyCmd.Run(); err != nil {
+	instances, err := osASG.Cloud.ListInstances(servers.ListOpts{})
+	if err != nil {
 		return false, err
 	}
-	target := osASG.ApplyCmd.Target.(*fi.DryRunTarget)
-	if target.HasChanges() {
-		creates, updates := target.Changes()
-		for k := range creates {
-			// scale up
-			if k == "Instance" {
-				glog.Infof("Scaling up running update --yes")
-				return true, nil
+	currentIGs := make(map[string]int32)
+	cluster := osASG.ApplyCmd.Cluster
+	instanceGroups := osASG.ApplyCmd.InstanceGroups
+
+	for _, ig := range instanceGroups {
+		currentIGs[ig.Name] = 0
+	}
+
+	for _, instance := range instances {
+		val, ok := instance.Metadata["k8s"]
+		ig, ok2 := instance.Metadata["KopsInstanceGroup"]
+		if ok && ok2 && val == cluster.Name {
+			currentVal, found := currentIGs[ig]
+			if found {
+				currentIGs[ig] = currentVal + 1
+			} else {
+				glog.Errorf("Error found instancegroup %s which does not exist anymore", ig)
 			}
 		}
+	}
 
-		for k, v := range updates {
-			// scale down
-			if k == "ServerGroup" {
-				maxSizeChanged := false
-				changes := reflect.ValueOf(v)
-				if changes.Kind() == reflect.Ptr && !changes.IsNil() {
-					changes = changes.Elem()
-				}
-				for i := 0; i < changes.NumField(); i++ {
-					fieldValue := reflectutils.ValueAsString(changes.Field(i))
-					if changes.Type().Field(i).Name == "MaxSize" && fieldValue != "" {
-						maxSizeChanged = true
-						break
-					}
-				}
-				if maxSizeChanged {
-					glog.Infof("Scaling down running update --yes")
-				}
-				return maxSizeChanged, nil
-			}
+	for _, ig := range instanceGroups {
+		if fi.Int32Value(ig.Spec.MinSize) < currentIGs[ig.Name] {
+			glog.Infof("Scaling down running update --yes")
+			return true, nil
+		}
+		if fi.Int32Value(ig.Spec.MinSize) > currentIGs[ig.Name] {
+			glog.Infof("Scaling up running update --yes")
+			return true, nil
 		}
 	}
 	return false, nil
