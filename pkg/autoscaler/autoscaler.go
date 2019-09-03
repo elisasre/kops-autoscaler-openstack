@@ -121,6 +121,7 @@ func (osASG *openstackASG) updateApplyCmd() error {
 
 // dryRun scans do we need run update or not
 // currently it supports scaling up and down instances
+// we do not use kops update cluster dryrun because it will make lots of API queries against OpenStack.
 func (osASG *openstackASG) dryRun() (bool, error) {
 	instances, err := osASG.Cloud.ListInstances(servers.ListOpts{})
 	if err != nil {
