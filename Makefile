@@ -1,7 +1,7 @@
 OPERATOR_NAME := kops-autoscaler-openstack
 IMAGE := elisaoyj/$(OPERATOR_NAME)
 
-.PHONY: copybindata bindata clean deps test gofmt ensure check build build-image build-linux-amd64
+.PHONY: copybindata bindata clean deps test gofmt ensure check build build-image build-linux-amd64 run
 
 copybindata:
 	cp ${GOPATH}/src/k8s.io/kops/upup/models/bindata.go replace/bindata.go
@@ -41,3 +41,6 @@ build: bindata
 
 build-image: build-linux-amd64
 	docker build -t $(IMAGE):latest .
+
+run: build
+	./bin/$(OPERATOR_NAME) --sleep 10
