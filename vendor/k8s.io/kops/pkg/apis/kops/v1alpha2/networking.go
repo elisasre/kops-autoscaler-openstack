@@ -32,6 +32,7 @@ type NetworkingSpec struct {
 	AmazonVPC  *AmazonVPCNetworkingSpec  `json:"amazonvpc,omitempty"`
 	Cilium     *CiliumNetworkingSpec     `json:"cilium,omitempty"`
 	LyftVPC    *LyftVPCNetworkingSpec    `json:"lyftvpc,omitempty"`
+	GCE        *GCENetworkingSpec        `json:"gce,omitempty"`
 }
 
 // ClassicNetworkingSpec is the specification of classic networking mode, integrated into kubernetes
@@ -60,9 +61,10 @@ type KopeioNetworkingSpec struct {
 
 // WeaveNetworkingSpec declares that we want Weave networking
 type WeaveNetworkingSpec struct {
-	MTU         *int32 `json:"mtu,omitempty"`
-	ConnLimit   *int32 `json:"connLimit,omitempty"`
-	NoMasqLocal *int32 `json:"noMasqLocal,omitempty"`
+	MTU          *int32 `json:"mtu,omitempty"`
+	ConnLimit    *int32 `json:"connLimit,omitempty"`
+	NoMasqLocal  *int32 `json:"noMasqLocal,omitempty"`
+	NetExtraArgs string `json:"netExtraArgs,omitempty"`
 }
 
 // FlannelNetworkingSpec declares that we want Flannel networking
@@ -92,6 +94,8 @@ type CalicoNetworkingSpec struct {
 	PrometheusProcessMetricsEnabled bool `json:"prometheusProcessMetricsEnabled,omitempty"`
 	// MajorVersion is the version of Calico to use
 	MajorVersion string `json:"majorVersion,omitempty"`
+	// IPIPMode is mode for CALICO_IPV4POOL_IPIP
+	IPIPMode string `json:"ipipMode,omitempty"`
 }
 
 // CanalNetworkingSpec declares that we want Canal networking
@@ -200,4 +204,8 @@ type CiliumNetworkingSpec struct {
 // LyftIpVlanNetworkingSpec declares that we want to use the cni-ipvlan-vpc-k8s CNI networking
 type LyftVPCNetworkingSpec struct {
 	SubnetTags map[string]string `json:"subnetTags,omitempty"`
+}
+
+// GCENetworkingSpec is the specification of GCE's native networking mode, using IP aliases
+type GCENetworkingSpec struct {
 }

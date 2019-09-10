@@ -21,7 +21,7 @@ GCS_URL=$(GCS_LOCATION:gs://%=https://storage.googleapis.com/%)
 LATEST_FILE?=latest-ci.txt
 GOPATH_1ST:=$(shell go env | grep GOPATH | cut -f 2 -d \")
 UNIQUE:=$(shell date +%s)
-GOVERSION=1.12.5
+GOVERSION=1.12.9
 BUILD=$(GOPATH_1ST)/src/k8s.io/kops/.build
 LOCAL=$(BUILD)/local
 BINDATA_TARGETS=upup/models/bindata.go
@@ -39,9 +39,6 @@ BAZELIMAGES=$(BAZELDIST)/images
 BAZELUPLOAD=$(BAZELBUILD)/upload
 UID:=$(shell id -u)
 GID:=$(shell id -g)
-TESTABLE_PACKAGES:=$(shell egrep -v "k8s.io/kops/vendor" hack/.packages)
-# We need to ignore clientsets because of kubernetes/kubernetes#60584
-GOVETABLE_PACKAGES:=$(shell egrep -v "k8s.io/kops/vendor|clientset/fake" hack/.packages)
 BAZEL_OPTIONS?=
 API_OPTIONS?=
 GCFLAGS?=
@@ -58,7 +55,7 @@ unexport KOPS_BASE_URL KOPS_CLUSTER_NAME KOPS_RUN_OBSOLETE_VERSION KOPS_STATE_ST
 unexport SKIP_REGION_CHECK S3_ACCESS_KEY_ID S3_ENDPOINT S3_REGION S3_SECRET_ACCESS_KEY VSPHERE_USERNAME VSPHERE_PASSWORD
 
 # Keep in sync with upup/models/cloudup/resources/addons/dns-controller/
-DNS_CONTROLLER_TAG=1.14.0-beta.2
+DNS_CONTROLLER_TAG=1.15.0-alpha.1
 
 # Keep in sync with logic in get_workspace_status
 # TODO: just invoke tools/get_workspace_status.sh?
@@ -121,9 +118,16 @@ ifdef STATIC_BUILD
 endif
 
 SHASUMCMD := $(shell command -v sha1sum || command -v shasum; 2> /dev/null)
-
 ifndef SHASUMCMD
   $(error "Neither sha1sum nor shasum command is available")
+endif
+
+SHA256SUMCMD := $(shell command -v sha256sum || command -v shasum; 2> /dev/null)
+ifndef SHA256SUMCMD
+  $(error "Neither sha256sum nor shasum command is available")
+endif
+ifeq ($(SHA256SUMCMD), "shasum")
+SHA256SUMCMD = "shasum -a 256"
 endif
 
 # Set compiler flags to allow binary debugging
@@ -228,6 +232,7 @@ codegen: kops-gobindata
 	PATH="${GOPATH_1ST}/bin:${PATH}" go generate k8s.io/kops/upup/pkg/fi/cloudup/dotasks
 	PATH="${GOPATH_1ST}/bin:${PATH}" go generate k8s.io/kops/upup/pkg/fi/cloudup/openstacktasks
 	PATH="${GOPATH_1ST}/bin:${PATH}" go generate k8s.io/kops/upup/pkg/fi/cloudup/alitasks
+	PATH="${GOPATH_1ST}/bin:${PATH}" go generate k8s.io/kops/upup/pkg/fi/cloudup/spotinsttasks
 	PATH="${GOPATH_1ST}/bin:${PATH}" go generate k8s.io/kops/upup/pkg/fi/assettasks
 	PATH="${GOPATH_1ST}/bin:${PATH}" go generate k8s.io/kops/upup/pkg/fi/fitasks
 
@@ -241,7 +246,7 @@ hooks: # Install Git hooks
 
 .PHONY: test
 test: ${BINDATA_TARGETS}  # Run tests locally
-	go test -v ${TESTABLE_PACKAGES}
+	go test -v ./...
 
 .PHONY: ${DIST}/linux/amd64/nodeup
 ${DIST}/linux/amd64/nodeup: ${BINDATA_TARGETS}
@@ -290,8 +295,11 @@ crossbuild-in-docker:
 kops-dist: crossbuild-in-docker
 	mkdir -p ${DIST}
 	(${SHASUMCMD} ${DIST}/darwin/amd64/kops | cut -d' ' -f1) > ${DIST}/darwin/amd64/kops.sha1
+	(${SHA256SUMCMD} ${DIST}/darwin/amd64/kops | cut -d' ' -f1) > ${DIST}/darwin/amd64/kops.sha256
 	(${SHASUMCMD} ${DIST}/linux/amd64/kops | cut -d' ' -f1) > ${DIST}/linux/amd64/kops.sha1
+	(${SHA256SUMCMD} ${DIST}/linux/amd64/kops | cut -d' ' -f1) > ${DIST}/linux/amd64/kops.sha256
 	(${SHASUMCMD} ${DIST}/windows/amd64/kops.exe | cut -d' ' -f1) > ${DIST}/windows/amd64/kops.exe.sha1
+	(${SHA256SUMCMD} ${DIST}/windows/amd64/kops.exe | cut -d' ' -f1) > ${DIST}/windows/amd64/kops.exe.sha256
 
 .PHONY: version-dist
 version-dist: nodeup-dist kops-dist protokube-export utils-dist
@@ -302,14 +310,19 @@ version-dist: nodeup-dist kops-dist protokube-export utils-dist
 	mkdir -p ${UPLOAD}/utils/${VERSION}/linux/amd64/
 	cp ${DIST}/nodeup ${UPLOAD}/kops/${VERSION}/linux/amd64/nodeup
 	cp ${DIST}/nodeup.sha1 ${UPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha1
+	cp ${DIST}/nodeup.sha256 ${UPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha256
 	cp ${IMAGES}/protokube.tar.gz ${UPLOAD}/kops/${VERSION}/images/protokube.tar.gz
 	cp ${IMAGES}/protokube.tar.gz.sha1 ${UPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha1
+	cp ${IMAGES}/protokube.tar.gz.sha256 ${UPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha256
 	cp ${DIST}/linux/amd64/kops ${UPLOAD}/kops/${VERSION}/linux/amd64/kops
 	cp ${DIST}/linux/amd64/kops.sha1 ${UPLOAD}/kops/${VERSION}/linux/amd64/kops.sha1
+	cp ${DIST}/linux/amd64/kops.sha256 ${UPLOAD}/kops/${VERSION}/linux/amd64/kops.sha256
 	cp ${DIST}/darwin/amd64/kops ${UPLOAD}/kops/${VERSION}/darwin/amd64/kops
 	cp ${DIST}/darwin/amd64/kops.sha1 ${UPLOAD}/kops/${VERSION}/darwin/amd64/kops.sha1
+	cp ${DIST}/darwin/amd64/kops.sha256 ${UPLOAD}/kops/${VERSION}/darwin/amd64/kops.sha256
 	cp ${DIST}/linux/amd64/utils.tar.gz ${UPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz
 	cp ${DIST}/linux/amd64/utils.tar.gz.sha1 ${UPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz.sha1
+	cp ${DIST}/linux/amd64/utils.tar.gz.sha256 ${UPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz.sha256
 
 .PHONY: vsphere-version-dist
 vsphere-version-dist: nodeup-dist protokube-export
@@ -320,16 +333,22 @@ vsphere-version-dist: nodeup-dist protokube-export
 	mkdir -p ${UPLOAD}/utils/${VERSION}/linux/amd64/
 	cp ${DIST}/nodeup ${UPLOAD}/kops/${VERSION}/linux/amd64/nodeup
 	cp ${DIST}/nodeup.sha1 ${UPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha1
+	cp ${DIST}/nodeup.sha256 ${UPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha256
 	cp ${IMAGES}/protokube.tar.gz ${UPLOAD}/kops/${VERSION}/images/protokube.tar.gz
 	cp ${IMAGES}/protokube.tar.gz.sha1 ${UPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha1
+	cp ${IMAGES}/protokube.tar.gz.sha256 ${UPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha256
 	scp -r .build/dist/nodeup* ${TARGET}:${TARGET_PATH}/nodeup
 	scp -r .build/dist/images/protokube.tar.gz* ${TARGET}:${TARGET_PATH}/protokube/
 	make kops-dist
 	cp ${DIST}/linux/amd64/kops ${UPLOAD}/kops/${VERSION}/linux/amd64/kops
 	cp ${DIST}/linux/amd64/kops.sha1 ${UPLOAD}/kops/${VERSION}/linux/amd64/kops.sha1
+	cp ${DIST}/linux/amd64/kops.sha256 ${UPLOAD}/kops/${VERSION}/linux/amd64/kops.sha256
 	cp ${DIST}/darwin/amd64/kops ${UPLOAD}/kops/${VERSION}/darwin/amd64/kops
 	cp ${DIST}/darwin/amd64/kops.sha1 ${UPLOAD}/kops/${VERSION}/darwin/amd64/kops.sha1
+	cp ${DIST}/darwin/amd64/kops.sha256 ${UPLOAD}/kops/${VERSION}/darwin/amd64/kops.sha256
 	cp ${DIST}/windows/amd64/kops.exe ${UPLOAD}/kops/${VERSION}/windows/amd64/kops.exe
+	cp ${DIST}/windows/amd64/kops.exe.sha1 ${UPLOAD}/kops/${VERSION}/windows/amd64/kops.exe.sha1
+	cp ${DIST}/windows/amd64/kops.exe.sha256 ${UPLOAD}/kops/${VERSION}/windows/amd64/kops.exe.sha256
 
 .PHONY: upload
 upload: version-dist # Upload kops to S3
@@ -415,6 +434,7 @@ protokube-export: protokube-image
 	docker save protokube:${PROTOKUBE_TAG} > ${IMAGES}/protokube.tar
 	gzip --force --best ${IMAGES}/protokube.tar
 	(${SHASUMCMD} ${IMAGES}/protokube.tar.gz | cut -d' ' -f1) > ${IMAGES}/protokube.tar.gz.sha1
+	(${SHA256SUMCMD} ${IMAGES}/protokube.tar.gz | cut -d' ' -f1) > ${IMAGES}/protokube.tar.gz.sha256
 
 # protokube-push is no longer used (we upload a docker image tar file to S3 instead),
 # but we're keeping it around in case it is useful for development etc
@@ -439,6 +459,7 @@ nodeup-dist:
 	docker exec nodeup-build-${UNIQUE} chown -R ${UID}:${GID} /go/src/k8s.io/kops/.build
 	docker cp nodeup-build-${UNIQUE}:/go/src/k8s.io/kops/.build/local/nodeup .build/dist/
 	(${SHASUMCMD} .build/dist/nodeup | cut -d' ' -f1) > .build/dist/nodeup.sha1
+	(${SHA256SUMCMD} .build/dist/nodeup | cut -d' ' -f1) > .build/dist/nodeup.sha256
 
 .PHONY: dns-controller-gocode
 dns-controller-gocode:
@@ -484,6 +505,8 @@ dep-prereqs:
 
 .PHONY: dep-ensure
 dep-ensure: dep-prereqs
+	echo "`make dep-ensure` has been replaced by `make gomod`"
+	exit 1
 	dep ensure -v
 	# Switch weavemesh to use peer_name_hash - bazel rule-go doesn't support build tags yet
 	rm vendor/github.com/weaveworks/mesh/peer_name_mac.go
@@ -499,12 +522,23 @@ dep-ensure: dep-prereqs
 	rm -rf vendor/k8s.io/code-generator/cmd/go-to-protobuf/
 	rm -rf vendor/k8s.io/code-generator/cmd/import-boss/
 	rm -rf vendor/github.com/docker/docker/contrib/
-	make bazel-gazelle
+	make gazelle
+
+.PHONY: gomod
+gomod:
+	GO111MODULE=on go mod vendor
+	# Switch weavemesh to use peer_name_hash - bazel rule-go doesn't support build tags yet
+	rm vendor/github.com/weaveworks/mesh/peer_name_mac.go
+	sed -i -e 's/peer_name_hash/!peer_name_mac/g' vendor/github.com/weaveworks/mesh/peer_name_hash.go
+	# Remove all bazel build files that were vendored and regenerate (we assume they are go-gettable)
+	find vendor/ -name "BUILD" -delete
+	find vendor/ -name "BUILD.bazel" -delete
+	make gazelle
 
 
 .PHONY: gofmt
 gofmt:
-	find -name "*.go" | grep -v vendor | xargs bazel run //:gofmt -- -w -s
+	find $(MAKEDIR) -name "*.go" | grep -v vendor | xargs bazel run //:gofmt -- -w -s
 
 .PHONY: goimports
 goimports:
@@ -516,7 +550,7 @@ verify-goimports:
 
 .PHONY: govet
 govet: ${BINDATA_TARGETS}
-	go vet ${GOVETABLE_PACKAGES}
+	go vet ./...
 
 # --------------------------------------------------
 # Continuous integration targets
@@ -528,6 +562,10 @@ verify-boilerplate:
 .PHONY: verify-gofmt
 verify-gofmt:
 	hack/verify-gofmt.sh
+
+.PHONY: verify-gomod
+verify-gomod:
+	hack/verify-gomod
 
 .PHONY: verify-packages
 verify-packages: ${BINDATA_TARGETS}
@@ -559,15 +597,17 @@ verify-bazel:
 # verify-package has to be after verify-gendoc, because with .gitignore for federation bindata
 # it bombs in travis. verify-gendoc generates the bindata file.
 .PHONY: ci
-ci: govet verify-gofmt verify-boilerplate verify-bazel verify-misspelling nodeup examples test | verify-gendocs verify-packages verify-apimachinery
+ci: govet verify-gofmt verify-gomod verify-goimports verify-boilerplate verify-bazel verify-misspelling nodeup examples test | verify-gendocs verify-packages verify-apimachinery
 	echo "Done!"
 
 # travis-ci is the target that travis-ci calls
 # we skip tasks that rely on bazel and are covered by other jobs
 #  verify-gofmt: uses bazel, covered by pull-kops-verify-gofmt
 #  verify-bazel: uses bazel, covered by pull-kops-verify-bazel
+#  govet: covered by pull-kops-verify-govet
+#  verify-boilerplate: covered by pull-kops-verify-boilerplate
 .PHONY: travis-ci
-travis-ci: govet verify-boilerplate verify-misspelling nodeup examples test | verify-gendocs verify-packages verify-apimachinery
+travis-ci: verify-misspelling nodeup examples test | verify-gendocs verify-packages verify-apimachinery
 	echo "Done!"
 
 .PHONY: pr
@@ -661,7 +701,7 @@ kops-server-push: kops-server-build
 
 .PHONY: bazel-test
 bazel-test:
-	bazel ${BAZEL_OPTIONS} test //cmd/... //pkg/... //channels/... //nodeup/... //protokube/... //dns-controller/... //tests/... //upup/... //util/... //hack:verify-all --test_output=errors
+	bazel ${BAZEL_OPTIONS} test  --test_output=errors -- //... -//vendor/...
 
 .PHONY: bazel-build
 bazel-build:
@@ -723,9 +763,13 @@ bazel-push-aws-run: bazel-push
 	ssh ${TARGET} chmod +x /tmp/nodeup
 	ssh -t ${TARGET} sudo SKIP_PACKAGE_UPDATE=1 /tmp/nodeup --conf=/var/cache/kubernetes-install/kube_env.yaml --v=8
 
-.PHONY: bazel-gazelle
-bazel-gazelle:
+.PHONY: gazelle
+gazelle:
 	hack/update-bazel.sh
+
+.PHONY: bazel-gazelle
+bazel-gazelle: gazelle
+	echo "bazel-gazelle is deprecated; please just use 'make gazelle'"
 
 .PHONY: check-markdown-links
 check-markdown-links:
@@ -758,6 +802,7 @@ bazel-protokube-export:
 	cp -fp bazel-bin/images/protokube.tar ${BAZELIMAGES}/protokube.tar
 	gzip --force --fast ${BAZELIMAGES}/protokube.tar
 	(${SHASUMCMD} ${BAZELIMAGES}/protokube.tar.gz | cut -d' ' -f1) > ${BAZELIMAGES}/protokube.tar.gz.sha1
+	(${SHA256SUMCMD} ${BAZELIMAGES}/protokube.tar.gz | cut -d' ' -f1) > ${BAZELIMAGES}/protokube.tar.gz.sha256
 
 .PHONY: bazel-version-dist
 bazel-version-dist: bazel-crossbuild-nodeup bazel-crossbuild-kops bazel-protokube-export bazel-utils-dist
@@ -769,16 +814,22 @@ bazel-version-dist: bazel-crossbuild-nodeup bazel-crossbuild-kops bazel-protokub
 	mkdir -p ${BAZELUPLOAD}/utils/${VERSION}/linux/amd64/
 	cp bazel-bin/cmd/nodeup/linux_amd64_pure_stripped/nodeup ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup
 	(${SHASUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha1
+	(${SHA256SUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha256
 	cp ${BAZELIMAGES}/protokube.tar.gz ${BAZELUPLOAD}/kops/${VERSION}/images/protokube.tar.gz
 	cp ${BAZELIMAGES}/protokube.tar.gz.sha1 ${BAZELUPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha1
+	cp ${BAZELIMAGES}/protokube.tar.gz.sha256 ${BAZELUPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha256
 	cp bazel-bin/cmd/kops/linux_amd64_pure_stripped/kops ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/kops
 	(${SHASUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/kops | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/kops.sha1
+	(${SHA256SUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/kops | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/kops.sha256
 	cp bazel-bin/cmd/kops/darwin_amd64_pure_stripped/kops ${BAZELUPLOAD}/kops/${VERSION}/darwin/amd64/kops
 	(${SHASUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/darwin/amd64/kops | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/darwin/amd64/kops.sha1
+	(${SHA256SUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/darwin/amd64/kops | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/darwin/amd64/kops.sha256
 	cp bazel-bin/cmd/kops/windows_amd64_pure_stripped/kops.exe ${BAZELUPLOAD}/kops/${VERSION}/windows/amd64/kops.exe
 	(${SHASUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/windows/amd64/kops.exe | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/windows/amd64/kops.exe.sha1
+	(${SHA256SUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/windows/amd64/kops.exe | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/windows/amd64/kops.exe.sha256
 	cp bazel-bin/images/utils-builder/utils.tar.gz ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz
 	(${SHASUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz.sha1
+	(${SHA256SUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/utils.tar.gz.sha256
 	cp -fr ${BAZELUPLOAD}/kops/${VERSION}/* ${BAZELDIST}/
 
 .PHONY: bazel-upload
@@ -818,6 +869,7 @@ dev-upload-nodeup: bazel-crossbuild-nodeup
 	mkdir -p ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/
 	cp -fp bazel-bin/cmd/nodeup/linux_amd64_pure_stripped/nodeup ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup
 	(${SHASUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha1
+	(${SHA256SUMCMD} ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup | cut -d' ' -f1) > ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/nodeup.sha256
 	${UPLOAD} ${BAZELUPLOAD}/ ${UPLOAD_DEST}
 
 # dev-upload-protokube uploads protokube to GCS
@@ -826,6 +878,7 @@ dev-upload-protokube: bazel-protokube-export # Upload kops to GCS
 	mkdir -p ${BAZELUPLOAD}/kops/${VERSION}/images/
 	cp -fp ${BAZELIMAGES}/protokube.tar.gz ${BAZELUPLOAD}/kops/${VERSION}/images/protokube.tar.gz
 	cp -fp ${BAZELIMAGES}/protokube.tar.gz.sha1 ${BAZELUPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha1
+	cp -fp ${BAZELIMAGES}/protokube.tar.gz.sha256 ${BAZELUPLOAD}/kops/${VERSION}/images/protokube.tar.gz.sha256
 	${UPLOAD} ${BAZELUPLOAD}/ ${UPLOAD_DEST}
 
 # dev-copy-utils copies utils from a recent release
@@ -835,6 +888,7 @@ dev-copy-utils:
 	mkdir -p ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/
 	cd ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/; wget -N https://kubeupv2.s3.amazonaws.com/kops/1.11.0-alpha.1/linux/amd64/utils.tar.gz
 	cd ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/; wget -N https://kubeupv2.s3.amazonaws.com/kops/1.11.0-alpha.1/linux/amd64/utils.tar.gz.sha1
+	cd ${BAZELUPLOAD}/kops/${VERSION}/linux/amd64/; wget -N https://kubeupv2.s3.amazonaws.com/kops/1.11.0-alpha.1/linux/amd64/utils.tar.gz.sha256
 	${UPLOAD} ${BAZELUPLOAD}/ ${UPLOAD_DEST}
 
 # dev-upload does a faster build and uploads to GCS / S3
@@ -842,3 +896,7 @@ dev-copy-utils:
 .PHONY: dev-upload
 dev-upload: dev-upload-nodeup dev-upload-protokube dev-copy-utils
 	echo "Done"
+
+.PHONY: crds
+crds:
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --apis-path pkg/apis/kops/v1alpha2 --domain k8s.io --output-dir k8s/crds/

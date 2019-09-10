@@ -2,7 +2,6 @@ package gophercloud
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -77,21 +76,13 @@ type ProviderClient struct {
 	// with the token and reauth func zeroed. Such client can be used to perform reauthorization.
 	Throwaway bool
 
-	// Context is the context passed to the HTTP request.
-	Context context.Context
-
-	// mut is a mutex for the client. It protects read and write access to client attributes such as getting
-	// and setting the TokenID.
 	mut *sync.RWMutex
 
-	// reauthmut is a mutex for reauthentication it attempts to ensure that only one reauthentication
-	// attempt happens at one time.
 	reauthmut *reauthlock
 
 	authResult AuthResult
 }
 
-// reauthlock represents a set of attributes used to help in the reauthentication process.
 type reauthlock struct {
 	sync.RWMutex
 	reauthing    bool
@@ -228,7 +219,7 @@ func (client *ProviderClient) Reauthenticate(previousToken string) (err error) {
 		return nil
 	}
 
-	if client.reauthmut == nil {
+	if client.mut == nil {
 		return client.ReauthFunc()
 	}
 
@@ -242,6 +233,9 @@ func (client *ProviderClient) Reauthenticate(previousToken string) (err error) {
 		return err
 	}
 	client.reauthmut.Unlock()
+
+	client.mut.Lock()
+	defer client.mut.Unlock()
 
 	client.reauthmut.Lock()
 	client.reauthmut.reauthing = true
@@ -317,9 +311,6 @@ func (client *ProviderClient) Request(method, url string, options *RequestOpts) 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
-	}
-	if client.Context != nil {
-		req = req.WithContext(client.Context)
 	}
 
 	// Populate the request headers. Apply options.MoreHeaders last, to give the caller the chance to
@@ -442,11 +433,6 @@ func (client *ProviderClient) Request(method, url string, options *RequestOpts) 
 			err = ErrDefault408{respErr}
 			if error408er, ok := errType.(Err408er); ok {
 				err = error408er.Error408(respErr)
-			}
-		case http.StatusConflict:
-			err = ErrDefault409{respErr}
-			if error409er, ok := errType.(Err409er); ok {
-				err = error409er.Error409(respErr)
 			}
 		case 429:
 			err = ErrDefault429{respErr}

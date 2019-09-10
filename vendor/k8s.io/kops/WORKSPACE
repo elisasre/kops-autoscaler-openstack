@@ -6,14 +6,20 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 http_archive(
     name = "io_bazel_rules_go",
-    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.18.5/rules_go-0.18.5.tar.gz"],
-    sha256 = "a82a352bffae6bee4e95f68a8d80a70e87f42c4741e6a448bec11998fcc82329",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.19.3/rules_go-0.19.3.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/0.19.3/rules_go-0.19.3.tar.gz",
+    ],
+    sha256 = "313f2c7a23fecc33023563f082f381a32b9b7254f727a7dd2d6380ccc6dfe09b",
 )
 
 http_archive(
     name = "bazel_gazelle",
-    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.17.0/bazel-gazelle-0.17.0.tar.gz"],
-    sha256 = "3c681998538231a2d24d0c07ed5a7658cb72bfb5fd4bf9911157c0e9ac6a2687",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/bazel-gazelle/releases/download/0.18.2/bazel-gazelle-0.18.2.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.18.2/bazel-gazelle-0.18.2.tar.gz",
+    ],
+    sha256 = "7fc87f4170011201b1690326e8c16c5d802836e3a0d617d8f75c3af2b23180c4",
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
@@ -21,10 +27,10 @@ load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_to
 go_rules_dependencies()
 
 go_register_toolchains(
-    go_version = "1.12.5",
+    go_version = "1.12.9",
 )
 
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 gazelle_dependencies()
 
@@ -34,7 +40,7 @@ gazelle_dependencies()
 git_repository(
     name = "io_bazel_rules_docker",
     remote = "https://github.com/bazelbuild/rules_docker.git",
-    tag = "v0.7.0",
+    tag = "v0.9.0",
 )
 
 load(
@@ -61,7 +67,7 @@ container_pull(
 git_repository(
     name = "distroless",
     remote = "https://github.com/googlecloudplatform/distroless.git",
-    commit = "3585653b2b0d33c3fb369b907ef68df8344fd2ad",
+    commit = "fa0765cc86064801e42a3b35f50ff2242aca9998",
 )
 
 load(
@@ -81,8 +87,8 @@ dpkg_src(
     name = "debian_stretch",
     arch = "amd64",
     distro = "stretch",
-    sha256 = "4b981bd2445d85cf1d93ea9f2d2dc235d20543ecdadd0d8065a10793b94eab9b",
-    snapshot = "20190131T155411Z",
+    sha256 = "da378b113f0b1edcf5b1f2c3074fd5476c7fd6e6df3752f824aad22e7547e699",
+    snapshot = "20190520T104418Z",
     url = "http://snapshot.debian.org/archive",
 )
 
@@ -114,13 +120,20 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
 http_file(
     name = "utils_tar_gz",
-    urls = ["https://kubeupv2.s3.amazonaws.com/kops/1.11.1/linux/amd64/utils.tar.gz"],
-    sha256 = "0e685eb751a32f782705311049b2592c4724add6f19ffdad1e7ce4f55816d7d8",
+    urls = ["https://kubeupv2.s3.amazonaws.com/kops/1.12.1/linux/amd64/utils.tar.gz"],
+    sha256 = "5c956247241dd94300ba13c6dd9cb5843382d4255125a7a6639d2aad68b9050c",
 )
 
 git_repository(
     name = "io_k8s_repo_infra",
-    commit = "4ce715fbe67d8fbed05ec2bb47a148e754100a4b",
+    commit = "f85734f673056977d8ba04b0386394b684ca2acb",
     remote = "https://github.com/kubernetes/repo-infra.git",
-    shallow_since = "1517262872 -0800",
+    shallow_since = "1563324513 -0800",
+)
+
+go_repository(
+    name = "com_github_google_go_containerregistry",
+    importpath = "github.com/google/go-containerregistry",
+    sum = "h1:PTrxTL8TNRbZts4KqdJMsqRlrdjoiKFDq6MVitj8mPk=",
+    version = "v0.0.0-20190829181151-21b2e01cec04",
 )

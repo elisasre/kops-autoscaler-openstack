@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"fmt"
-
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
 	"github.com/spotinst/spotinst-sdk-go/spotinst/client"
 	"github.com/spotinst/spotinst-sdk-go/spotinst/util/jsonutil"
@@ -167,6 +165,7 @@ type AutoScaleDockerSwarm struct {
 
 type AutoScaleHeadroom struct {
 	CPUPerUnit    *int `json:"cpuPerUnit,omitempty"`
+	GPUPerUnit    *int `json:"gpuPerUnit,omitempty"`
 	MemoryPerUnit *int `json:"memoryPerUnit,omitempty"`
 	NumOfUnits    *int `json:"numOfUnits,omitempty"`
 
@@ -441,6 +440,7 @@ type ScalingPolicy struct {
 	Action            *Action      `json:"action,omitempty"`
 	Target            *float64     `json:"target,omitempty"`
 	IsEnabled         *bool        `json:"isEnabled,omitempty"`
+	Predictive        *Predictive  `json:"predictive,omitempty"`
 
 	forceSendFields []string
 	nullFields      []string
@@ -462,6 +462,13 @@ type Action struct {
 type Dimension struct {
 	Name  *string `json:"name,omitempty"`
 	Value *string `json:"value,omitempty"`
+
+	forceSendFields []string
+	nullFields      []string
+}
+
+type Predictive struct {
+	Mode *string `json:"mode,omitempty"`
 
 	forceSendFields []string
 	nullFields      []string
@@ -840,12 +847,26 @@ type DeploymentStatusInput struct {
 	RollID  *string `json:"id,omitempty"`
 }
 
+type Roll struct {
+	Status *string `json:"status,omitempty"`
+}
+
 type RollGroupInput struct {
 	GroupID             *string       `json:"groupId,omitempty"`
 	BatchSizePercentage *int          `json:"batchSizePercentage,omitempty"`
 	GracePeriod         *int          `json:"gracePeriod,omitempty"`
 	HealthCheckType     *string       `json:"healthCheckType,omitempty"`
 	Strategy            *RollStrategy `json:"strategy,omitempty"`
+}
+
+type RollECSGroupInput struct {
+	GroupID *string         `json:"groupId,omitempty"`
+	Roll    *RollECSWrapper `json:"roll,omitempty"`
+}
+
+type RollECSWrapper struct {
+	BatchSizePercentage *int    `json:"batchSizePercentage,omitempty"`
+	Comment             *string `json:"comment,omitempty"`
 }
 
 type RollGroupOutput struct {
@@ -864,6 +885,14 @@ type Progress struct {
 	Unit  *string `json:"unit,omitempty"`
 	Value *int    `json:"value,omitempty"`
 }
+
+type StopDeploymentInput struct {
+	GroupID *string `json:"groupId,omitempty"`
+	RollID  *string `json:"id,omitempty"`
+	Roll    *Roll   `json:"roll,omitempty"`
+}
+
+type StopDeploymentOutput struct{}
 
 func deploymentStatusFromJSON(in []byte) (*RollGroupStatus, error) {
 	b := new(RollGroupStatus)
@@ -1223,6 +1252,34 @@ func (s *ServiceOp) DeploymentStatus(ctx context.Context, input *DeploymentStatu
 	return &RollGroupOutput{deployments}, nil
 }
 
+func (s *ServiceOp) StopDeployment(ctx context.Context, input *StopDeploymentInput) (*StopDeploymentOutput, error) {
+	path, err := uritemplates.Expand("/aws/ec2/group/{groupId}/roll/{rollId}", uritemplates.Values{
+		"groupId": spotinst.StringValue(input.GroupID),
+		"rollId":  spotinst.StringValue(input.RollID),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	input.GroupID = nil
+	input.RollID = nil
+
+	r := client.NewRequest(http.MethodPut, path)
+	input.Roll = &Roll{
+		Status: spotinst.String("STOPPED"),
+	}
+	r.Obj = input
+
+	resp, err := client.RequireOK(s.Client.Do(ctx, r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return &StopDeploymentOutput{}, nil
+}
+
 func (s *ServiceOp) Detach(ctx context.Context, input *DetachGroupInput) (*DetachGroupOutput, error) {
 	path, err := uritemplates.Expand("/aws/ec2/group/{groupId}/detachInstances", uritemplates.Values{
 		"groupId": spotinst.StringValue(input.GroupID),
@@ -1258,6 +1315,34 @@ func (s *ServiceOp) Roll(ctx context.Context, input *RollGroupInput) (*RollGroup
 	input.GroupID = nil
 
 	r := client.NewRequest(http.MethodPut, path)
+	r.Obj = input
+
+	resp, err := client.RequireOK(s.Client.Do(ctx, r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	deployments, err := deploymentStatusFromHttpResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RollGroupOutput{deployments}, nil
+}
+
+func (s *ServiceOp) RollECS(ctx context.Context, input *RollECSGroupInput) (*RollGroupOutput, error) {
+	path, err := uritemplates.Expand("/aws/ec2/group/{groupId}/clusterRoll", uritemplates.Values{
+		"groupId": spotinst.StringValue(input.GroupID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// We do not need the ID anymore so let's drop it.
+	input.GroupID = nil
+
+	r := client.NewRequest(http.MethodPost, path)
 	r.Obj = input
 
 	resp, err := client.RequireOK(s.Client.Do(ctx, r))
@@ -1431,7 +1516,6 @@ func (s *ServiceOp) StartBeanstalkMaintenance(ctx context.Context, input *Beanst
 		return nil, err
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Status: %v\n", resp.Status)
 
 	return &BeanstalkMaintenanceOutput{}, nil
 }
@@ -1475,7 +1559,6 @@ func (s *ServiceOp) FinishBeanstalkMaintenance(ctx context.Context, input *Beans
 		return nil, err
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Status: %v\n", resp.Status)
 
 	return &BeanstalkMaintenanceOutput{}, nil
 }
@@ -1484,9 +1567,9 @@ func (s *ServiceOp) FinishBeanstalkMaintenance(ctx context.Context, input *Beans
 
 // region Group
 
-func (o *Group) MarshalJSON() ([]byte, error) {
+func (o Group) MarshalJSON() ([]byte, error) {
 	type noMethod Group
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1564,9 +1647,9 @@ func (o *Group) SetRegion(v *string) *Group {
 
 // region Integration
 
-func (o *Integration) MarshalJSON() ([]byte, error) {
+func (o Integration) MarshalJSON() ([]byte, error) {
 	type noMethod Integration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1665,9 +1748,9 @@ func (o *Integration) SetGitlab(v *GitlabIntegration) *Integration {
 
 // region RancherIntegration
 
-func (o *RancherIntegration) MarshalJSON() ([]byte, error) {
+func (o RancherIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod RancherIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1703,9 +1786,9 @@ func (o *RancherIntegration) SetVersion(v *string) *RancherIntegration {
 
 // region ElasticBeanstalkIntegration
 
-func (o *ElasticBeanstalkIntegration) MarshalJSON() ([]byte, error) {
+func (o ElasticBeanstalkIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod ElasticBeanstalkIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1733,9 +1816,10 @@ func (o *ElasticBeanstalkIntegration) SetDeploymentPreferences(v *BeanstalkDeplo
 // endregion
 
 // region BeanstalkManagedActions
-func (o *BeanstalkManagedActions) MarshalJSON() ([]byte, error) {
+
+func (o BeanstalkManagedActions) MarshalJSON() ([]byte, error) {
 	type noMethod BeanstalkManagedActions
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1749,9 +1833,10 @@ func (o *BeanstalkManagedActions) SetPlatformUpdate(v *BeanstalkPlatformUpdate) 
 // endregion
 
 // region BeanstalkPlatformUpdate
-func (o *BeanstalkPlatformUpdate) MarshalJSON() ([]byte, error) {
+
+func (o BeanstalkPlatformUpdate) MarshalJSON() ([]byte, error) {
 	type noMethod BeanstalkPlatformUpdate
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1779,9 +1864,10 @@ func (o *BeanstalkPlatformUpdate) SetUpdateLevel(v *string) *BeanstalkPlatformUp
 // endregion
 
 // region BeanstalkDeploymentPreferences
-func (o *BeanstalkDeploymentPreferences) MarshalJSON() ([]byte, error) {
+
+func (o BeanstalkDeploymentPreferences) MarshalJSON() ([]byte, error) {
 	type noMethod BeanstalkDeploymentPreferences
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1816,9 +1902,10 @@ func (o *BeanstalkDeploymentPreferences) SetStrategy(v *BeanstalkDeploymentStrat
 // endregion
 
 // region BeanstalkDeploymentStrategy
-func (o *BeanstalkDeploymentStrategy) MarshalJSON() ([]byte, error) {
+
+func (o BeanstalkDeploymentStrategy) MarshalJSON() ([]byte, error) {
 	type noMethod BeanstalkDeploymentStrategy
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1840,9 +1927,9 @@ func (o *BeanstalkDeploymentStrategy) SetShouldDrainInstances(v *bool) *Beanstal
 
 // region EC2ContainerServiceIntegration
 
-func (o *EC2ContainerServiceIntegration) MarshalJSON() ([]byte, error) {
+func (o EC2ContainerServiceIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod EC2ContainerServiceIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1853,9 +1940,9 @@ func (o *EC2ContainerServiceIntegration) SetClusterName(v *string) *EC2Container
 	return o
 }
 
-func (o *AutoScaleECS) MarshalJSON() ([]byte, error) {
+func (o AutoScaleECS) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleECS
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1884,9 +1971,9 @@ func (o *AutoScaleECS) SetShouldScaleDownNonServiceTasks(v *bool) *AutoScaleECS 
 
 // region Docker Swarm
 
-func (o *DockerSwarmIntegration) MarshalJSON() ([]byte, error) {
+func (o DockerSwarmIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod DockerSwarmIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1911,9 +1998,9 @@ func (o *DockerSwarmIntegration) SetAutoScale(v *AutoScaleDockerSwarm) *DockerSw
 	return o
 }
 
-func (o *AutoScaleDockerSwarm) MarshalJSON() ([]byte, error) {
+func (o AutoScaleDockerSwarm) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleDockerSwarm
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1921,9 +2008,9 @@ func (o *AutoScaleDockerSwarm) MarshalJSON() ([]byte, error) {
 
 // region Route53
 
-func (o *Route53Integration) MarshalJSON() ([]byte, error) {
+func (o Route53Integration) MarshalJSON() ([]byte, error) {
 	type noMethod Route53Integration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1938,9 +2025,9 @@ func (o *Route53Integration) SetDomains(v []*Domain) *Route53Integration {
 
 // region Domain
 
-func (o *Domain) MarshalJSON() ([]byte, error) {
+func (o Domain) MarshalJSON() ([]byte, error) {
 	type noMethod Domain
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1951,7 +2038,6 @@ func (o *Domain) SetHostedZoneID(v *string) *Domain {
 	return o
 }
 
-// SetSpotinstAccountID sets the spotinst account ID for us in cross-account linking
 func (o *Domain) SetSpotinstAccountID(v *string) *Domain {
 	if o.SpotinstAccountID = v; o.SpotinstAccountID == nil {
 		o.nullFields = append(o.nullFields, "SpotinstAccountID")
@@ -1970,9 +2056,9 @@ func (o *Domain) SetRecordSets(v []*RecordSet) *Domain {
 
 // region RecordSets
 
-func (o *RecordSet) MarshalJSON() ([]byte, error) {
+func (o RecordSet) MarshalJSON() ([]byte, error) {
 	type noMethod RecordSet
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -1994,9 +2080,9 @@ func (o *RecordSet) SetName(v *string) *RecordSet {
 
 // region AutoScale
 
-func (o *AutoScale) MarshalJSON() ([]byte, error) {
+func (o AutoScale) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScale
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2039,15 +2125,22 @@ func (o *AutoScale) SetDown(v *AutoScaleDown) *AutoScale {
 
 // region AutoScaleHeadroom
 
-func (o *AutoScaleHeadroom) MarshalJSON() ([]byte, error) {
+func (o AutoScaleHeadroom) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleHeadroom
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
 func (o *AutoScaleHeadroom) SetCPUPerUnit(v *int) *AutoScaleHeadroom {
 	if o.CPUPerUnit = v; o.CPUPerUnit == nil {
 		o.nullFields = append(o.nullFields, "CPUPerUnit")
+	}
+	return o
+}
+
+func (o *AutoScaleHeadroom) SetGPUPerUnit(v *int) *AutoScaleHeadroom {
+	if o.GPUPerUnit = v; o.GPUPerUnit == nil {
+		o.nullFields = append(o.nullFields, "GPUPerUnit")
 	}
 	return o
 }
@@ -2070,9 +2163,9 @@ func (o *AutoScaleHeadroom) SetNumOfUnits(v *int) *AutoScaleHeadroom {
 
 // region AutoScaleDown
 
-func (o *AutoScaleDown) MarshalJSON() ([]byte, error) {
+func (o AutoScaleDown) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleDown
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2094,9 +2187,9 @@ func (o *AutoScaleDown) SetMaxScaleDownPercentage(v *int) *AutoScaleDown {
 
 // region AutoScaleConstraint
 
-func (o *AutoScaleConstraint) MarshalJSON() ([]byte, error) {
+func (o AutoScaleConstraint) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleConstraint
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2118,9 +2211,9 @@ func (o *AutoScaleConstraint) SetValue(v *string) *AutoScaleConstraint {
 
 // region AutoScaleLabel
 
-func (o *AutoScaleLabel) MarshalJSON() ([]byte, error) {
+func (o AutoScaleLabel) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleLabel
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2142,9 +2235,9 @@ func (o *AutoScaleLabel) SetValue(v *string) *AutoScaleLabel {
 
 // region KubernetesIntegration
 
-func (o *KubernetesIntegration) MarshalJSON() ([]byte, error) {
+func (o KubernetesIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod KubernetesIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2183,9 +2276,9 @@ func (o *KubernetesIntegration) SetAutoScale(v *AutoScaleKubernetes) *Kubernetes
 	return o
 }
 
-func (o *AutoScaleKubernetes) MarshalJSON() ([]byte, error) {
+func (o AutoScaleKubernetes) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleKubernetes
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2200,9 +2293,9 @@ func (o *AutoScaleKubernetes) SetLabels(v []*AutoScaleLabel) *AutoScaleKubernete
 
 // region MesosphereIntegration
 
-func (o *MesosphereIntegration) MarshalJSON() ([]byte, error) {
+func (o MesosphereIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod MesosphereIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2217,9 +2310,9 @@ func (o *MesosphereIntegration) SetServer(v *string) *MesosphereIntegration {
 
 // region MultaiIntegration
 
-func (o *MultaiIntegration) MarshalJSON() ([]byte, error) {
+func (o MultaiIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod MultaiIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2234,9 +2327,9 @@ func (o *MultaiIntegration) SetDeploymentId(v *string) *MultaiIntegration {
 
 // region NomadIntegration
 
-func (o *NomadIntegration) MarshalJSON() ([]byte, error) {
+func (o NomadIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod NomadIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2268,9 +2361,9 @@ func (o *NomadIntegration) SetAutoScale(v *AutoScaleNomad) *NomadIntegration {
 	return o
 }
 
-func (o *AutoScaleNomad) MarshalJSON() ([]byte, error) {
+func (o AutoScaleNomad) MarshalJSON() ([]byte, error) {
 	type noMethod AutoScaleNomad
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2285,9 +2378,9 @@ func (o *AutoScaleNomad) SetConstraints(v []*AutoScaleConstraint) *AutoScaleNoma
 
 // region ChefIntegration
 
-func (o *ChefIntegration) MarshalJSON() ([]byte, error) {
+func (o ChefIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod ChefIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2328,10 +2421,11 @@ func (o *ChefIntegration) SetVersion(v *string) *ChefIntegration {
 
 // endregion
 
-//region Gitlab
-func (o *GitlabIntegration) MarshalJSON() ([]byte, error) {
+// region Gitlab
+
+func (o GitlabIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod GitlabIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2342,9 +2436,9 @@ func (o *GitlabIntegration) SetRunner(v *GitlabRunner) *GitlabIntegration {
 	return o
 }
 
-func (o *GitlabRunner) MarshalJSON() ([]byte, error) {
+func (o GitlabRunner) MarshalJSON() ([]byte, error) {
 	type noMethod GitlabRunner
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2355,13 +2449,13 @@ func (o *GitlabRunner) SetIsEnabled(v *bool) *GitlabRunner {
 	return o
 }
 
-//endregion
+// endregion
 
 // region Scheduling
 
-func (o *Scheduling) MarshalJSON() ([]byte, error) {
+func (o Scheduling) MarshalJSON() ([]byte, error) {
 	type noMethod Scheduling
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2376,9 +2470,9 @@ func (o *Scheduling) SetTasks(v []*Task) *Scheduling {
 
 // region Task
 
-func (o *Task) MarshalJSON() ([]byte, error) {
+func (o Task) MarshalJSON() ([]byte, error) {
 	type noMethod Task
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2480,7 +2574,6 @@ func (o *Task) SetAdjustment(v *int) *Task {
 	return o
 }
 
-// SetAdjustmentPercentage sets the value for adjustmentPercentage
 func (o *Task) SetAdjustmentPercentage(v *int) *Task {
 	if o.AdjustmentPercentage = v; o.AdjustmentPercentage == nil {
 		o.nullFields = append(o.nullFields, "AdjustmentPercentage")
@@ -2492,9 +2585,9 @@ func (o *Task) SetAdjustmentPercentage(v *int) *Task {
 
 // region Scaling
 
-func (o *Scaling) MarshalJSON() ([]byte, error) {
+func (o Scaling) MarshalJSON() ([]byte, error) {
 	type noMethod Scaling
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2523,9 +2616,9 @@ func (o *Scaling) SetTarget(v []*ScalingPolicy) *Scaling {
 
 // region ScalingPolicy
 
-func (o *ScalingPolicy) MarshalJSON() ([]byte, error) {
+func (o ScalingPolicy) MarshalJSON() ([]byte, error) {
 	type noMethod ScalingPolicy
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2634,6 +2727,13 @@ func (o *ScalingPolicy) SetDimensions(v []*Dimension) *ScalingPolicy {
 	return o
 }
 
+func (o *ScalingPolicy) SetPredictive(v *Predictive) *ScalingPolicy {
+	if o.Predictive = v; o.Predictive == nil {
+		o.nullFields = append(o.nullFields, "Predictive")
+	}
+	return o
+}
+
 func (o *ScalingPolicy) SetAction(v *Action) *ScalingPolicy {
 	if o.Action = v; o.Action == nil {
 		o.nullFields = append(o.nullFields, "Action")
@@ -2659,9 +2759,9 @@ func (o *ScalingPolicy) SetIsEnabled(v *bool) *ScalingPolicy {
 
 // region Action
 
-func (o *Action) MarshalJSON() ([]byte, error) {
+func (o Action) MarshalJSON() ([]byte, error) {
 	type noMethod Action
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2718,9 +2818,9 @@ func (o *Action) SetTarget(v *string) *Action {
 
 // region Dimension
 
-func (o *Dimension) MarshalJSON() ([]byte, error) {
+func (o Dimension) MarshalJSON() ([]byte, error) {
 	type noMethod Dimension
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2740,11 +2840,28 @@ func (o *Dimension) SetValue(v *string) *Dimension {
 
 // endregion
 
+// region Predictive
+
+func (o *Predictive) MarshalJSON() ([]byte, error) {
+	type noMethod Predictive
+	raw := noMethod(*o)
+	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
+}
+
+func (o *Predictive) SetMode(v *string) *Predictive {
+	if o.Mode = v; o.Mode == nil {
+		o.nullFields = append(o.nullFields, "Mode")
+	}
+	return o
+}
+
+// endregion
+
 // region Strategy
 
-func (o *Strategy) MarshalJSON() ([]byte, error) {
+func (o Strategy) MarshalJSON() ([]byte, error) {
 	type noMethod Strategy
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2836,9 +2953,9 @@ func (o *Strategy) SetScalingStrategy(v *ScalingStrategy) *Strategy {
 
 // region ScalingStrategy
 
-func (o *ScalingStrategy) MarshalJSON() ([]byte, error) {
+func (o ScalingStrategy) MarshalJSON() ([]byte, error) {
 	type noMethod ScalingStrategy
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2860,9 +2977,9 @@ func (o *ScalingStrategy) SetTerminateAtEndOfBillingHour(v *bool) *ScalingStrate
 
 // region Persistence
 
-func (o *Persistence) MarshalJSON() ([]byte, error) {
+func (o Persistence) MarshalJSON() ([]byte, error) {
 	type noMethod Persistence
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2898,9 +3015,9 @@ func (o *Persistence) SetBlockDevicesMode(v *string) *Persistence {
 
 // region RevertToSpot
 
-func (o *RevertToSpot) MarshalJSON() ([]byte, error) {
+func (o RevertToSpot) MarshalJSON() ([]byte, error) {
 	type noMethod RevertToSpot
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2922,9 +3039,9 @@ func (o *RevertToSpot) SetTimeWindows(v []string) *RevertToSpot {
 
 // region Signal
 
-func (o *Signal) MarshalJSON() ([]byte, error) {
+func (o Signal) MarshalJSON() ([]byte, error) {
 	type noMethod Signal
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2946,9 +3063,9 @@ func (o *Signal) SetTimeout(v *int) *Signal {
 
 // region Capacity
 
-func (o *Capacity) MarshalJSON() ([]byte, error) {
+func (o Capacity) MarshalJSON() ([]byte, error) {
 	type noMethod Capacity
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -2984,9 +3101,9 @@ func (o *Capacity) SetUnit(v *string) *Capacity {
 
 // region Compute
 
-func (o *Compute) MarshalJSON() ([]byte, error) {
+func (o Compute) MarshalJSON() ([]byte, error) {
 	type noMethod Compute
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3059,9 +3176,9 @@ func (o *Compute) SetSubnetIDs(v []string) *Compute {
 
 // region EBSVolume
 
-func (o *EBSVolume) MarshalJSON() ([]byte, error) {
+func (o EBSVolume) MarshalJSON() ([]byte, error) {
 	type noMethod EBSVolume
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3083,9 +3200,9 @@ func (o *EBSVolume) SetVolumeIDs(v []string) *EBSVolume {
 
 // region InstanceTypes
 
-func (o *InstanceTypes) MarshalJSON() ([]byte, error) {
+func (o InstanceTypes) MarshalJSON() ([]byte, error) {
 	type noMethod InstanceTypes
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3121,9 +3238,9 @@ func (o *InstanceTypes) SetWeights(v []*InstanceTypeWeight) *InstanceTypes {
 
 // region InstanceTypeWeight
 
-func (o *InstanceTypeWeight) MarshalJSON() ([]byte, error) {
+func (o InstanceTypeWeight) MarshalJSON() ([]byte, error) {
 	type noMethod InstanceTypeWeight
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3145,9 +3262,9 @@ func (o *InstanceTypeWeight) SetWeight(v *int) *InstanceTypeWeight {
 
 // region AvailabilityZone
 
-func (o *AvailabilityZone) MarshalJSON() ([]byte, error) {
+func (o AvailabilityZone) MarshalJSON() ([]byte, error) {
 	type noMethod AvailabilityZone
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3176,9 +3293,9 @@ func (o *AvailabilityZone) SetPlacementGroupName(v *string) *AvailabilityZone {
 
 // region LaunchSpecification
 
-func (o *LaunchSpecification) MarshalJSON() ([]byte, error) {
+func (o LaunchSpecification) MarshalJSON() ([]byte, error) {
 	type noMethod LaunchSpecification
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3280,7 +3397,6 @@ func (o *LaunchSpecification) SetIAMInstanceProfile(v *IAMInstanceProfile) *Laun
 	return o
 }
 
-// SetCreditSpecification sets the creditSpecification object for the group's launch configuration
 func (o *LaunchSpecification) SetCreditSpecification(v *CreditSpecification) *LaunchSpecification {
 	if o.CreditSpecification = v; o.CreditSpecification == nil {
 		o.nullFields = append(o.nullFields, "CreditSpecification")
@@ -3313,9 +3429,9 @@ func (o *LaunchSpecification) SetTags(v []*Tag) *LaunchSpecification {
 
 // region LoadBalancersConfig
 
-func (o *LoadBalancersConfig) MarshalJSON() ([]byte, error) {
+func (o LoadBalancersConfig) MarshalJSON() ([]byte, error) {
 	type noMethod LoadBalancersConfig
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3330,9 +3446,9 @@ func (o *LoadBalancersConfig) SetLoadBalancers(v []*LoadBalancer) *LoadBalancers
 
 // region LoadBalancer
 
-func (o *LoadBalancer) MarshalJSON() ([]byte, error) {
+func (o LoadBalancer) MarshalJSON() ([]byte, error) {
 	type noMethod LoadBalancer
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3389,9 +3505,9 @@ func (o *LoadBalancer) SetAutoWeight(v *bool) *LoadBalancer {
 
 // region NetworkInterface
 
-func (o *NetworkInterface) MarshalJSON() ([]byte, error) {
+func (o NetworkInterface) MarshalJSON() ([]byte, error) {
 	type noMethod NetworkInterface
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3430,7 +3546,6 @@ func (o *NetworkInterface) SetAssociatePublicIPAddress(v *bool) *NetworkInterfac
 	return o
 }
 
-// SetAssociateIPV6Address sets the associite IPV6 value
 func (o *NetworkInterface) SetAssociateIPV6Address(v *bool) *NetworkInterface {
 	if o.AssociateIPV6Address = v; o.AssociateIPV6Address == nil {
 		o.nullFields = append(o.nullFields, "AssociateIPV6Address")
@@ -3470,9 +3585,9 @@ func (o *NetworkInterface) SetSubnetId(v *string) *NetworkInterface {
 
 // region BlockDeviceMapping
 
-func (o *BlockDeviceMapping) MarshalJSON() ([]byte, error) {
+func (o BlockDeviceMapping) MarshalJSON() ([]byte, error) {
 	type noMethod BlockDeviceMapping
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3501,9 +3616,9 @@ func (o *BlockDeviceMapping) SetEBS(v *EBS) *BlockDeviceMapping {
 
 // region EBS
 
-func (o *EBS) MarshalJSON() ([]byte, error) {
+func (o EBS) MarshalJSON() ([]byte, error) {
 	type noMethod EBS
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3560,9 +3675,9 @@ func (o *EBS) SetIOPS(v *int) *EBS {
 
 // region IAMInstanceProfile
 
-func (o *IAMInstanceProfile) MarshalJSON() ([]byte, error) {
+func (o IAMInstanceProfile) MarshalJSON() ([]byte, error) {
 	type noMethod IAMInstanceProfile
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3584,13 +3699,12 @@ func (o *IAMInstanceProfile) SetArn(v *string) *IAMInstanceProfile {
 
 // region CreditSpecification
 
-func (o *CreditSpecification) MarshalJSON() ([]byte, error) {
+func (o CreditSpecification) MarshalJSON() ([]byte, error) {
 	type noMethod CreditSpecification
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
-// SetCPUCredits sets the cpu credits for the group. Valid values: STANDARD, UNLIMITED
 func (o *CreditSpecification) SetCPUCredits(v *string) *CreditSpecification {
 	if o.CPUCredits = v; o.CPUCredits == nil {
 		o.nullFields = append(o.nullFields, "CPUCredits")
@@ -3602,9 +3716,9 @@ func (o *CreditSpecification) SetCPUCredits(v *string) *CreditSpecification {
 
 // region RollStrategy
 
-func (o *RollStrategy) MarshalJSON() ([]byte, error) {
+func (o RollStrategy) MarshalJSON() ([]byte, error) {
 	type noMethod RollStrategy
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3626,9 +3740,9 @@ func (o *RollStrategy) SetShouldDrainInstances(v *bool) *RollStrategy {
 
 // region CodeDeployIntegration
 
-func (o *CodeDeployIntegration) MarshalJSON() ([]byte, error) {
+func (o CodeDeployIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod CodeDeployIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3657,9 +3771,9 @@ func (o *CodeDeployIntegration) SetTerminateInstanceOnFailure(v *bool) *CodeDepl
 
 // region DeploymentGroup
 
-func (o *DeploymentGroup) MarshalJSON() ([]byte, error) {
+func (o DeploymentGroup) MarshalJSON() ([]byte, error) {
 	type noMethod DeploymentGroup
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
@@ -3681,9 +3795,9 @@ func (o *DeploymentGroup) SetDeploymentGroupName(v *string) *DeploymentGroup {
 
 // region OpsWorksIntegration
 
-func (o *OpsWorksIntegration) MarshalJSON() ([]byte, error) {
+func (o OpsWorksIntegration) MarshalJSON() ([]byte, error) {
 	type noMethod OpsWorksIntegration
-	raw := noMethod(*o)
+	raw := noMethod(o)
 	return jsonutil.MarshalJSON(raw, o.forceSendFields, o.nullFields)
 }
 
