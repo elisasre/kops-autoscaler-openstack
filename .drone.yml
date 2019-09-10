@@ -16,7 +16,6 @@ steps:
   pull: always
   commands:
   - make deps
-  - make check
   - make ensure
   - make test
 
