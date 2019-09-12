@@ -18,6 +18,7 @@ deps:
 test: bindata
 	GO111MODULE=on go test ./... -mod vendor -v -coverprofile=gotest-coverage.out > gotest-report.out && cat gotest-report.out || (cat gotest-report.out; exit 1)
 	GO111MODULE=on golint -set_exit_status cmd/... pkg/... > golint-report.out && cat golint-report.out || (cat golint-report.out; exit 1)
+	GO111MODULE=on go vet -mod vendor ./...
 	./hack/gofmt.sh
 
 gofmt:
