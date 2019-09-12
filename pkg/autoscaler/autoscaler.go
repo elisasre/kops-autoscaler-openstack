@@ -81,7 +81,6 @@ func Run(opts *Options) error {
 		}
 		fails = 0
 	}
-	return nil
 }
 
 func (osASG *openstackASG) updateApplyCmd() error {
