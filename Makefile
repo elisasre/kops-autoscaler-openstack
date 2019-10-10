@@ -20,6 +20,7 @@ test: bindata
 	GO111MODULE=on golint -set_exit_status cmd/... pkg/... > golint-report.out && cat golint-report.out || (cat golint-report.out; exit 1)
 	GO111MODULE=on go vet -mod vendor ./...
 	./hack/gofmt.sh
+	git diff --exit-code go.mod go.sum
 
 gofmt:
 	./hack/gofmt.sh
