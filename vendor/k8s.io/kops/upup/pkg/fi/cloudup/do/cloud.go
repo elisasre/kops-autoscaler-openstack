@@ -17,12 +17,22 @@ limitations under the License.
 package do
 
 import (
+	"strings"
+
 	"k8s.io/kops/pkg/resources/digitalocean"
 	"k8s.io/kops/upup/pkg/fi"
 )
 
-const TagNameEtcdClusterPrefix = "k8s.io/etcd/"
+const TagKubernetesClusterIndex = "k8s-index"
+const TagNameEtcdClusterPrefix = "etcdCluster-"
 const TagNameRolePrefix = "k8s.io/role/"
+const TagKubernetesClusterNamePrefix = "KubernetesCluster"
+
+func SafeClusterName(clusterName string) string {
+	// DO does not support . in tags / names
+	safeClusterName := strings.Replace(clusterName, ".", "-", -1)
+	return safeClusterName
+}
 
 func NewDOCloud(region string) (fi.Cloud, error) {
 	return digitalocean.NewCloud(region)

@@ -429,10 +429,27 @@ type KubeAPIServerConfig struct {
 	// File containing PEM-encoded x509 RSA or ECDSA private or public keys, used to verify ServiceAccount tokens.
 	// The specified file can contain multiple keys, and the flag can be specified multiple times with different files.
 	// If unspecified, --tls-private-key-file is used.
-	ServiceAccountKeyFile []string `json:"serviceAccountKeyFile,omitempty" flag:"service-account-key-file"`
+	ServiceAccountKeyFile []string `json:"serviceAccountKeyFile,omitempty" flag:"service-account-key-file,repeat"`
+
+	// Path to the file that contains the current private key of the service account token issuer.
+	// The issuer will sign issued ID tokens with this private key. (Requires the 'TokenRequest' feature gate.)
+	ServiceAccountSigningKeyFile *string `json:"serviceAccountSigningKeyFile,omitempty" flag:"service-account-signing-key-file"`
+
+	// Identifier of the service account token issuer. The issuer will assert this identifier
+	// in "iss" claim of issued tokens. This value is a string or URI.
+	ServiceAccountIssuer *string `json:"serviceAccountIssuer,omitempty" flag:"service-account-issuer"`
+
+	// Identifiers of the API. The service account token authenticator will validate that
+	// tokens used against the API are bound to at least one of these audiences. If the
+	// --service-account-issuer flag is configured and this flag is not, this field
+	// defaults to a single element list containing the issuer URL.
+	APIAudiences []string `json:"apiAudiences,omitempty" flag:"api-audiences"`
 
 	// CPURequest, cpu request compute resource for api server. Defaults to "150m"
 	CPURequest string `json:"cpuRequest,omitempty"`
+
+	// Amount of time to retain Kubernetes events
+	EventTTL *metav1.Duration `json:"eventTTL,omitempty" flag:"event-ttl"`
 }
 
 // KubeControllerManagerConfig is the configuration for the controller
@@ -489,6 +506,10 @@ type KubeControllerManagerConfig struct {
 	// how long the autoscaler has to wait before another downscale
 	// operation can be performed after the current one has completed.
 	HorizontalPodAutoscalerDownscaleDelay *metav1.Duration `json:"horizontalPodAutoscalerDownscaleDelay,omitempty" flag:"horizontal-pod-autoscaler-downscale-delay"`
+	// HorizontalPodAutoscalerDownscaleStabilization is the period for which
+	// autoscaler will look backwards and not scale down below any
+	// recommendation it made during that period.
+	HorizontalPodAutoscalerDownscaleStabilization *metav1.Duration `json:"horizontalPodAutoscalerDownscaleStabilization,omitempty" flag:"horizontal-pod-autoscaler-downscale-stabilization"`
 	// HorizontalPodAutoscalerUpscaleDelay is a duration that specifies how
 	// long the autoscaler has to wait before another upscale operation can
 	// be performed after the current one has completed.

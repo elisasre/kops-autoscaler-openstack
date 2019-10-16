@@ -134,7 +134,6 @@ type ClusterSpec struct {
 	FileAssets []FileAssetSpec `json:"fileAssets,omitempty"`
 	// EtcdClusters stores the configuration for each cluster
 	EtcdClusters []*EtcdClusterSpec `json:"etcdClusters,omitempty"`
-
 	// Component configurations
 	Docker                         *DockerConfig                 `json:"docker,omitempty"`
 	KubeDNS                        *KubeDNSConfig                `json:"kubeDNS,omitempty"`
@@ -356,6 +355,8 @@ type KubeDNSConfig struct {
 	CacheMaxConcurrent int `json:"cacheMaxConcurrent,omitempty"`
 	// Domain is the dns domain
 	Domain string `json:"domain,omitempty"`
+	// ExternalCoreFile is used to provide a complete CoreDNS CoreFile by the user - ignores other provided flags which modify the CoreFile.
+	ExternalCoreFile string `json:"externalCoreFile,omitempty"`
 	// Image is the name of the docker image to run - @deprecated as this is now in the addon
 	Image string `json:"image,omitempty"`
 	// Replicas is the number of pod replicas - @deprecated as this is now in the addon, and controlled by autoscaler

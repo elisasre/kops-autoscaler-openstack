@@ -623,8 +623,8 @@ k8s.io/heapster v1.2.0-beta.1/go.mod h1:h1uhptVXMwC8xtZBYsPXKVi8fpdlYkTs6k949Koz
 k8s.io/helm v2.9.0+incompatible/go.mod h1:LZzlS4LQBHfciFOurYBFkCMTaZ0D1l+p0teMg7TSULI=
 k8s.io/klog v0.3.1 h1:RVgyDHY/kFKtLqh67NvEWIgkMneNoIrdkN0CxDSQc68=
 k8s.io/klog v0.3.1/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
-k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb h1:wFZjc/8u6Fl1HQb0vY9h9PTfSODxbbD779uOiKHb/pM=
-k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb/go.mod h1:4hRLrHTwEtzicptyn2SA3tEHBqQOne/EdxYA3ygv7+U=
+k8s.io/kops v1.4.2-0.20191015153511-1a662bf87cab h1:wI/OZluXe4yDz3tVZ9OoTgjQVU6/vzk9a90X1rBxPnE=
+k8s.io/kops v1.4.2-0.20191015153511-1a662bf87cab/go.mod h1:4hRLrHTwEtzicptyn2SA3tEHBqQOne/EdxYA3ygv7+U=
 k8s.io/kube-aggregator v0.0.0-20190819142756-13daafd3604f/go.mod h1:Oi268abQ2YhI9Jg3GoIu/Y/g7Qfae9I68x+2uOAYv2w=
 k8s.io/kube-controller-manager v0.0.0-20190819144832-f53437941eef/go.mod h1:67WbUwkKhMZ2nqk96jMuvkw6sjL2BVPgaLRXMopHpyc=
 k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30 h1:TRb4wNWoBVrH9plmkp2q86FIDppkbrEXdXlxU3a3BMI=
