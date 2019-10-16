@@ -673,7 +673,7 @@ k8s.io/cloud-provider/volume/helpers
 k8s.io/csi-translation-lib/plugins
 # k8s.io/klog v0.3.1
 k8s.io/klog
-# k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb
+# k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb => k8s.io/kops v1.4.2-0.20191015153511-1a662bf87cab
 k8s.io/kops/pkg/apis/kops
 k8s.io/kops/pkg/client/simple
 k8s.io/kops/pkg/client/simple/vfsclientset

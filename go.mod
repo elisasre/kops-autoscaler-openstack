@@ -44,6 +44,8 @@ replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20190819143045
 
 replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20190819142756-13daafd3604f
 
+replace k8s.io/kops => k8s.io/kops v1.4.2-0.20191015153511-1a662bf87cab
+
 require (
 	cloud.google.com/go v0.45.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
