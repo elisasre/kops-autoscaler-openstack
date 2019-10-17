@@ -4,13 +4,13 @@ IMAGE := elisaoyj/$(OPERATOR_NAME)
 .PHONY: copybindata bindata clean deps test gofmt ensure check build build-image build-linux-amd64 run
 
 copybindata:
-	cp ${GOPATH}/src/k8s.io/kops/upup/models/bindata.go replace/bindata.go
+	cp ${GOPATH}/src/k8s.io/kops/upup/models/bindata.go replace/bindata/bindata.go
 
 clean:
 	git clean -Xdf
 
 bindata:
-	cp replace/bindata.go vendor/k8s.io/kops/upup/models
+	cp replace/bindata/bindata.go vendor/k8s.io/kops/upup/models
 
 deps:
 	go get -u golang.org/x/lint/golint
