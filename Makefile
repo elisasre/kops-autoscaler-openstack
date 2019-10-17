@@ -29,6 +29,7 @@ ensure:
 	GO111MODULE=on go mod tidy
 	GO111MODULE=on go mod vendor
 	cp replace/bindata.go vendor/k8s.io/kops/upup/models
+	cp replace/port.go vendor/k8s.io/kops/upup/pkg/fi/cloudup/openstacktasks/port.go
 
 build-linux-amd64: bindata
 	rm -f bin/linux/$(OPERATOR_NAME)

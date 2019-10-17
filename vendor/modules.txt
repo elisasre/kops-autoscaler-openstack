@@ -169,6 +169,8 @@ github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 # github.com/gophercloud/gophercloud v0.0.0-20190216224116-dcc6e84aef1b
 github.com/gophercloud/gophercloud/openstack/compute/v2/servers
+github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups
+github.com/gophercloud/gophercloud/openstack/networking/v2/ports
 github.com/gophercloud/gophercloud
 github.com/gophercloud/gophercloud/openstack/compute/v2/flavors
 github.com/gophercloud/gophercloud/openstack/compute/v2/images
@@ -189,10 +191,8 @@ github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/pools
 github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/external
 github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips
 github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers
-github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups
 github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules
 github.com/gophercloud/gophercloud/openstack/networking/v2/networks
-github.com/gophercloud/gophercloud/openstack/networking/v2/ports
 github.com/gophercloud/gophercloud/openstack/networking/v2/subnets
 github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers
 github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects
