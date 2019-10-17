@@ -1160,6 +1160,9 @@ func autoConvert_v1alpha2_CalicoNetworkingSpec_To_kops_CalicoNetworkingSpec(in *
 	out.PrometheusProcessMetricsEnabled = in.PrometheusProcessMetricsEnabled
 	out.MajorVersion = in.MajorVersion
 	out.IPIPMode = in.IPIPMode
+	out.TyphaPrometheusMetricsEnabled = in.TyphaPrometheusMetricsEnabled
+	out.TyphaPrometheusMetricsPort = in.TyphaPrometheusMetricsPort
+	out.TyphaReplicas = in.TyphaReplicas
 	return nil
 }
 
@@ -1178,6 +1181,9 @@ func autoConvert_kops_CalicoNetworkingSpec_To_v1alpha2_CalicoNetworkingSpec(in *
 	out.PrometheusProcessMetricsEnabled = in.PrometheusProcessMetricsEnabled
 	out.MajorVersion = in.MajorVersion
 	out.IPIPMode = in.IPIPMode
+	out.TyphaPrometheusMetricsEnabled = in.TyphaPrometheusMetricsEnabled
+	out.TyphaPrometheusMetricsPort = in.TyphaPrometheusMetricsPort
+	out.TyphaReplicas = in.TyphaReplicas
 	return nil
 }
 
@@ -1272,6 +1278,24 @@ func autoConvert_v1alpha2_CiliumNetworkingSpec_To_kops_CiliumNetworkingSpec(in *
 	out.StateDir = in.StateDir
 	out.TracePayloadLen = in.TracePayloadLen
 	out.Tunnel = in.Tunnel
+	out.EnableIpv6 = in.EnableIpv6
+	out.EnableIpv4 = in.EnableIpv4
+	out.MonitorAggregation = in.MonitorAggregation
+	out.BPFCTGlobalTCPMax = in.BPFCTGlobalTCPMax
+	out.BPFCTGlobalAnyMax = in.BPFCTGlobalAnyMax
+	out.PreallocateBPFMaps = in.PreallocateBPFMaps
+	out.SidecarIstioProxyImage = in.SidecarIstioProxyImage
+	out.ClusterName = in.ClusterName
+	out.ToFqdnsEnablePoller = in.ToFqdnsEnablePoller
+	out.ContainerRuntimeLabels = in.ContainerRuntimeLabels
+	out.IPTablesRulesNoinstall = in.IPTablesRulesNoinstall
+	out.AutoDirectNodeRoutes = in.AutoDirectNodeRoutes
+	out.EnableNodePort = in.EnableNodePort
+	out.RemoveCbrBridge = in.RemoveCbrBridge
+	out.RestartPods = in.RestartPods
+	out.ReconfigureKubelet = in.ReconfigureKubelet
+	out.NodeInitBootstrapFile = in.NodeInitBootstrapFile
+	out.CniBinPath = in.CniBinPath
 	return nil
 }
 
@@ -1330,6 +1354,24 @@ func autoConvert_kops_CiliumNetworkingSpec_To_v1alpha2_CiliumNetworkingSpec(in *
 	out.StateDir = in.StateDir
 	out.TracePayloadLen = in.TracePayloadLen
 	out.Tunnel = in.Tunnel
+	out.EnableIpv6 = in.EnableIpv6
+	out.EnableIpv4 = in.EnableIpv4
+	out.MonitorAggregation = in.MonitorAggregation
+	out.BPFCTGlobalTCPMax = in.BPFCTGlobalTCPMax
+	out.BPFCTGlobalAnyMax = in.BPFCTGlobalAnyMax
+	out.PreallocateBPFMaps = in.PreallocateBPFMaps
+	out.SidecarIstioProxyImage = in.SidecarIstioProxyImage
+	out.ClusterName = in.ClusterName
+	out.ToFqdnsEnablePoller = in.ToFqdnsEnablePoller
+	out.ContainerRuntimeLabels = in.ContainerRuntimeLabels
+	out.IPTablesRulesNoinstall = in.IPTablesRulesNoinstall
+	out.AutoDirectNodeRoutes = in.AutoDirectNodeRoutes
+	out.EnableNodePort = in.EnableNodePort
+	out.RemoveCbrBridge = in.RemoveCbrBridge
+	out.RestartPods = in.RestartPods
+	out.ReconfigureKubelet = in.ReconfigureKubelet
+	out.NodeInitBootstrapFile = in.NodeInitBootstrapFile
+	out.CniBinPath = in.CniBinPath
 	return nil
 }
 
@@ -2203,6 +2245,7 @@ func autoConvert_v1alpha2_DockerConfig_To_kops_DockerConfig(in *DockerConfig, ou
 	out.MetricsAddress = in.MetricsAddress
 	out.MTU = in.MTU
 	out.RegistryMirrors = in.RegistryMirrors
+	out.SkipInstall = in.SkipInstall
 	out.Storage = in.Storage
 	out.StorageOpts = in.StorageOpts
 	out.UserNamespaceRemap = in.UserNamespaceRemap
@@ -2236,6 +2279,7 @@ func autoConvert_kops_DockerConfig_To_v1alpha2_DockerConfig(in *kops.DockerConfi
 	out.MetricsAddress = in.MetricsAddress
 	out.MTU = in.MTU
 	out.RegistryMirrors = in.RegistryMirrors
+	out.SkipInstall = in.SkipInstall
 	out.Storage = in.Storage
 	out.StorageOpts = in.StorageOpts
 	out.UserNamespaceRemap = in.UserNamespaceRemap
@@ -3309,7 +3353,11 @@ func autoConvert_v1alpha2_KubeAPIServerConfig_To_kops_KubeAPIServerConfig(in *Ku
 	out.MinRequestTimeout = in.MinRequestTimeout
 	out.TargetRamMb = in.TargetRamMb
 	out.ServiceAccountKeyFile = in.ServiceAccountKeyFile
+	out.ServiceAccountSigningKeyFile = in.ServiceAccountSigningKeyFile
+	out.ServiceAccountIssuer = in.ServiceAccountIssuer
+	out.APIAudiences = in.APIAudiences
 	out.CPURequest = in.CPURequest
+	out.EventTTL = in.EventTTL
 	return nil
 }
 
@@ -3403,7 +3451,11 @@ func autoConvert_kops_KubeAPIServerConfig_To_v1alpha2_KubeAPIServerConfig(in *ko
 	out.MinRequestTimeout = in.MinRequestTimeout
 	out.TargetRamMb = in.TargetRamMb
 	out.ServiceAccountKeyFile = in.ServiceAccountKeyFile
+	out.ServiceAccountSigningKeyFile = in.ServiceAccountSigningKeyFile
+	out.ServiceAccountIssuer = in.ServiceAccountIssuer
+	out.APIAudiences = in.APIAudiences
 	out.CPURequest = in.CPURequest
+	out.EventTTL = in.EventTTL
 	return nil
 }
 
@@ -3443,6 +3495,7 @@ func autoConvert_v1alpha2_KubeControllerManagerConfig_To_kops_KubeControllerMana
 	out.UseServiceAccountCredentials = in.UseServiceAccountCredentials
 	out.HorizontalPodAutoscalerSyncPeriod = in.HorizontalPodAutoscalerSyncPeriod
 	out.HorizontalPodAutoscalerDownscaleDelay = in.HorizontalPodAutoscalerDownscaleDelay
+	out.HorizontalPodAutoscalerDownscaleStabilization = in.HorizontalPodAutoscalerDownscaleStabilization
 	out.HorizontalPodAutoscalerUpscaleDelay = in.HorizontalPodAutoscalerUpscaleDelay
 	out.HorizontalPodAutoscalerTolerance = in.HorizontalPodAutoscalerTolerance
 	out.HorizontalPodAutoscalerUseRestClients = in.HorizontalPodAutoscalerUseRestClients
@@ -3492,6 +3545,7 @@ func autoConvert_kops_KubeControllerManagerConfig_To_v1alpha2_KubeControllerMana
 	out.UseServiceAccountCredentials = in.UseServiceAccountCredentials
 	out.HorizontalPodAutoscalerSyncPeriod = in.HorizontalPodAutoscalerSyncPeriod
 	out.HorizontalPodAutoscalerDownscaleDelay = in.HorizontalPodAutoscalerDownscaleDelay
+	out.HorizontalPodAutoscalerDownscaleStabilization = in.HorizontalPodAutoscalerDownscaleStabilization
 	out.HorizontalPodAutoscalerUpscaleDelay = in.HorizontalPodAutoscalerUpscaleDelay
 	out.HorizontalPodAutoscalerTolerance = in.HorizontalPodAutoscalerTolerance
 	out.HorizontalPodAutoscalerUseRestClients = in.HorizontalPodAutoscalerUseRestClients
@@ -3514,6 +3568,7 @@ func autoConvert_v1alpha2_KubeDNSConfig_To_kops_KubeDNSConfig(in *KubeDNSConfig,
 	out.CacheMaxSize = in.CacheMaxSize
 	out.CacheMaxConcurrent = in.CacheMaxConcurrent
 	out.Domain = in.Domain
+	out.ExternalCoreFile = in.ExternalCoreFile
 	out.Image = in.Image
 	out.Replicas = in.Replicas
 	out.Provider = in.Provider
@@ -3535,6 +3590,7 @@ func autoConvert_kops_KubeDNSConfig_To_v1alpha2_KubeDNSConfig(in *kops.KubeDNSCo
 	out.CacheMaxSize = in.CacheMaxSize
 	out.CacheMaxConcurrent = in.CacheMaxConcurrent
 	out.Domain = in.Domain
+	out.ExternalCoreFile = in.ExternalCoreFile
 	out.Image = in.Image
 	out.Replicas = in.Replicas
 	out.Provider = in.Provider
