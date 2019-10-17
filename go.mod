@@ -87,6 +87,5 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible // indirect
-	k8s.io/klog v0.3.1
 	k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb
 )
