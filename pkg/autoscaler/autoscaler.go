@@ -147,12 +147,31 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 		}
 	}
 
+	names := make(map[string][]servers.Server)
+	for _, instance := range instances {
+		names[instance.Name] = append(names[instance.Name], instance)
+	}
+
+	run := false
+	for _, values := range names {
+		if len(values) > 1 {
+			for _, value := range values {
+				glog.Infof("Removing instance which is not unique %s (%s)", value.Name, value.ID)
+				run = true
+				err := osASG.Cloud.DeleteInstanceWithID(value.ID)
+				if err != nil {
+					glog.Errorf("Error deleting instance %v", err)
+				}
+			}
+		}
+	}
+
 	for _, ig := range instanceGroups {
 		if fi.Int32Value(ig.Spec.MinSize) < currentIGs[ig.Name] {
 			glog.Infof("Scaling down running update --yes")
 			return true, nil
 		}
-		if fi.Int32Value(ig.Spec.MinSize) > currentIGs[ig.Name] {
+		if fi.Int32Value(ig.Spec.MinSize) > currentIGs[ig.Name] || run {
 			glog.Infof("Scaling up running update --yes")
 			return true, nil
 		}
