@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@ limitations under the License.
 
 package kops
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // KubeletConfigSpec defines the kubelet configuration
 type KubeletConfigSpec struct {
@@ -146,7 +149,7 @@ type KubeletConfigSpec struct {
 	EvictionMaxPodGracePeriod int32 `json:"evictionMaxPodGracePeriod,omitempty" flag:"eviction-max-pod-grace-period" flag-empty:"0"`
 	// Comma-delimited list of minimum reclaims (e.g. imagefs.available=2Gi) that describes the minimum amount of resource the kubelet will reclaim when performing a pod eviction if that resource is under pressure.
 	EvictionMinimumReclaim string `json:"evictionMinimumReclaim,omitempty" flag:"eviction-minimum-reclaim"`
-	// The full path of the directory in which to search for additional third party volume plugins (this path must be writeable, dependant on your choice of OS)
+	// The full path of the directory in which to search for additional third party volume plugins (this path must be writeable, dependent on your choice of OS)
 	VolumePluginDirectory string `json:"volumePluginDirectory,omitempty" flag:"volume-plugin-dir"`
 	// Taints to add when registering a node in the cluster
 	Taints []string `json:"taints,omitempty" flag:"register-with-taints"`
@@ -217,7 +220,7 @@ type KubeProxyConfig struct {
 	BindAddress string `json:"bindAddress,omitempty" flag:"bind-address"`
 	// Master is the address of the Kubernetes API server (overrides any value in kubeconfig)
 	Master string `json:"master,omitempty" flag:"master"`
-	// MetricsBindAddress is the IP address and port for the metrics server to serve on
+	// MetricsBindAddress is the IP address for the metrics server to serve on
 	MetricsBindAddress *string `json:"metricsBindAddress,omitempty" flag:"metrics-bind-address"`
 	// Enabled allows enabling or disabling kube-proxy
 	Enabled *bool `json:"enabled,omitempty"`
@@ -372,7 +375,7 @@ type KubeAPIServerConfig struct {
 	// AuditWebhookBatchThrottleEnable is Whether batching throttling is enabled. Only used in batch mode. (default true)
 	AuditWebhookBatchThrottleEnable *bool `json:"auditWebhookBatchThrottleEnable,omitempty" flag:"audit-webhook-batch-throttle-enable"`
 	// AuditWebhookBatchThrottleQps is Maximum average number of batches per second. Only used in batch mode. (default 10)
-	AuditWebhookBatchThrottleQps *float32 `json:"auditWebhookBatchThrottleQps,omitempty" flag:"audit-webhook-batch-throttle-qps"`
+	AuditWebhookBatchThrottleQps *resource.Quantity `json:"auditWebhookBatchThrottleQps,omitempty" flag:"audit-webhook-batch-throttle-qps"`
 	// AuditWebhookConfigFile is Path to a kubeconfig formatted file that defines the audit webhook configuration. Requires the 'AdvancedAuditing' feature gate.
 	AuditWebhookConfigFile string `json:"auditWebhookConfigFile,omitempty" flag:"audit-webhook-config-file"`
 	// AuditWebhookInitialBackoff is The amount of time to wait before retrying the first failed request. (default 10s)
@@ -517,7 +520,7 @@ type KubeControllerManagerConfig struct {
 	// HorizontalPodAutoscalerTolerance is the minimum change (from 1.0) in the
 	// desired-to-actual metrics ratio for the horizontal pod autoscaler to
 	// consider scaling.
-	HorizontalPodAutoscalerTolerance *float64 `json:"horizontalPodAutoscalerTolerance,omitempty" flag:"horizontal-pod-autoscaler-tolerance"`
+	HorizontalPodAutoscalerTolerance *resource.Quantity `json:"horizontalPodAutoscalerTolerance,omitempty" flag:"horizontal-pod-autoscaler-tolerance"`
 	// HorizontalPodAutoscalerUseRestClients determines if the new-style clients
 	// should be used if support for custom metrics is enabled.
 	HorizontalPodAutoscalerUseRestClients *bool `json:"horizontalPodAutoscalerUseRestClients,omitempty" flag:"horizontal-pod-autoscaler-use-rest-clients"`
@@ -534,7 +537,7 @@ type KubeControllerManagerConfig struct {
 	// The resync period will be random between MinResyncPeriod and 2*MinResyncPeriod. (default 12h0m0s)
 	MinResyncPeriod string `json:"minResyncPeriod,omitempty" flag:"min-resync-period"`
 	// KubeAPIQPS QPS to use while talking with kubernetes apiserver. (default 20)
-	KubeAPIQPS *float32 `json:"kubeAPIQPS,omitempty" flag:"kube-api-qps"`
+	KubeAPIQPS *resource.Quantity `json:"kubeAPIQPS,omitempty" flag:"kube-api-qps"`
 	// KubeAPIBurst Burst to use while talking with kubernetes apiserver. (default 30)
 	KubeAPIBurst *int32 `json:"kubeAPIBurst,omitempty" flag:"kube-api-burst"`
 }

@@ -44,7 +44,7 @@ replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20190819143045
 
 replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20190819142756-13daafd3604f
 
-replace k8s.io/kops => k8s.io/kops v1.4.2-0.20191015153511-1a662bf87cab
+replace k8s.io/kops => k8s.io/kops v1.4.2-0.20191028143926-69fe8e36898d
 
 require (
 	cloud.google.com/go v0.45.1 // indirect
@@ -61,9 +61,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/go-ini/ini v1.46.0 // indirect
-	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/google/btree v1.0.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190216224116-dcc6e84aef1b
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.11.1 // indirect
@@ -86,6 +84,5 @@ require (
 	gopkg.in/ini.v1 v1.46.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v11.0.0+incompatible // indirect
 	k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb
 )
