@@ -79,6 +79,7 @@ require (
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect
 	go.uber.org/zap v1.10.0 // indirect
+	golang.org/x/tools v0.0.0-20191101200257-8dbcdeb83d3f // indirect
 	google.golang.org/api v0.10.0 // indirect
 	gopkg.in/gcfg.v1 v1.2.3 // indirect
 	gopkg.in/ini.v1 v1.46.0 // indirect
