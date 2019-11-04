@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -159,29 +159,24 @@ func (b *InstanceGroupModelBuilder) buildElastigroup(c *fi.ModelBuilderContext, 
 			if err != nil {
 				return err
 			}
-			break
 
 		case InstanceGroupLabelOrientation:
 			group.Orientation = fi.String(v)
-			break
 
 		case InstanceGroupLabelUtilizeReservedInstances:
 			group.UtilizeReservedInstances, err = parseBool(v)
 			if err != nil {
 				return err
 			}
-			break
 
 		case InstanceGroupLabelFallbackToOnDemand:
 			group.FallbackToOnDemand, err = parseBool(v)
 			if err != nil {
 				return err
 			}
-			break
 
 		case InstanceGroupLabelHealthCheckType:
 			group.HealthCheckType = fi.String(strings.ToUpper(v))
-			break
 		}
 	}
 

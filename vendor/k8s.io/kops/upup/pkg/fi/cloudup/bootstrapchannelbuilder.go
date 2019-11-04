@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -64,10 +64,12 @@ func (b *BootstrapChannelBuilder) Build(c *fi.ModelBuilderContext) error {
 			return fmt.Errorf("error reading manifest %s: %v", manifestPath, err)
 		}
 
-		manifestBytes, err = b.assetBuilder.RemapManifest(manifestBytes)
+		remapped, err := b.assetBuilder.RemapManifest(manifestBytes)
 		if err != nil {
+			klog.Infof("invalid manifest: %s", string(manifestBytes))
 			return fmt.Errorf("error remapping manifest %s: %v", manifestPath, err)
 		}
+		manifestBytes = remapped
 
 		// Trim whitespace
 		manifestBytes = []byte(strings.TrimSpace(string(manifestBytes)))
@@ -112,6 +114,25 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 	addons := &channelsapi.Addons{}
 	addons.Kind = "Addons"
 	addons.ObjectMeta.Name = "bootstrap"
+
+	{
+		key := "kops-controller.addons.k8s.io"
+		version := "1.15.0-alpha.1"
+
+		{
+			location := key + "/k8s-1.16.yaml"
+			id := "k8s-1.16"
+
+			addons.Spec.Addons = append(addons.Spec.Addons, &channelsapi.AddonSpec{
+				Name:              fi.String(key),
+				Version:           fi.String(version),
+				Selector:          map[string]string{"k8s-addon": key},
+				Manifest:          fi.String(location),
+				KubernetesVersion: ">=1.16.0-alpha.0",
+				Id:                id,
+			})
+		}
+	}
 
 	{
 		key := "core.addons.k8s.io"
@@ -375,7 +396,7 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 	if externalDNS == nil || !externalDNS.Disable {
 		{
 			key := "dns-controller.addons.k8s.io"
-			version := "1.15.0-beta.1"
+			version := "1.15.0-alpha.1"
 
 			{
 				location := key + "/pre-k8s-1.6.yaml"
@@ -1209,7 +1230,23 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 					Version:           fi.String(version),
 					Manifest:          fi.String(location),
 					Selector:          map[string]string{"k8s-addon": key},
-					KubernetesVersion: ">=1.11.0",
+					KubernetesVersion: ">=1.11.0 <1.13.0",
+					Id:                id,
+				})
+			}
+			{
+				key := "openstack.addons.k8s.io"
+				version := "1.13.0"
+
+				location := key + "/k8s-1.13.yaml"
+				id := "k8s-1.13-ccm"
+
+				addons.Spec.Addons = append(addons.Spec.Addons, &channelsapi.AddonSpec{
+					Name:              fi.String(key),
+					Version:           fi.String(version),
+					Manifest:          fi.String(location),
+					Selector:          map[string]string{"k8s-addon": key},
+					KubernetesVersion: ">=1.13.0",
 					Id:                id,
 				})
 			}
