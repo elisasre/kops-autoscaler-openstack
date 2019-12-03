@@ -13,7 +13,7 @@ bindata:
 	cp .replace/bindata/bindata.go vendor/k8s.io/kops/upup/models
 
 deps:
-	go get -u golang.org/x/lint/golint
+	GO111MODULE=off go get -u golang.org/x/lint/golint
 
 test: bindata
 	GO111MODULE=on go test ./... -mod vendor -v -coverprofile=gotest-coverage.out > gotest-report.out && cat gotest-report.out || (cat gotest-report.out; exit 1)
