@@ -44,13 +44,12 @@ replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20190819143045
 
 replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20190819142756-13daafd3604f
 
-replace k8s.io/kops => k8s.io/kops v1.4.2-0.20191028143926-69fe8e36898d
+replace k8s.io/kops => k8s.io/kops v1.4.2-0.20191126035309-501baf7e56bf
 
 require (
 	cloud.google.com/go v0.45.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
-	github.com/aws/aws-sdk-go v1.23.18 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -60,7 +59,6 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
-	github.com/go-ini/ini v1.46.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gophercloud/gophercloud v0.0.0-20190216224116-dcc6e84aef1b
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
@@ -70,19 +68,15 @@ require (
 	github.com/prometheus/client_golang v1.1.0 // indirect
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
 	github.com/sergi/go-diff v1.0.0 // indirect
-	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/cobra v0.0.5
-	github.com/spotinst/spotinst-sdk-go v0.0.0-20190814081052-16968d6ba49e // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/vmware/govmomi v0.21.0 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/tools v0.0.0-20191101200257-8dbcdeb83d3f // indirect
 	google.golang.org/api v0.10.0 // indirect
 	gopkg.in/gcfg.v1 v1.2.3 // indirect
-	gopkg.in/ini.v1 v1.46.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/apimachinery v0.0.0
 	k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb

@@ -484,6 +484,10 @@ type EC2API interface {
 	DeletePlacementGroupWithContext(aws.Context, *ec2.DeletePlacementGroupInput, ...request.Option) (*ec2.DeletePlacementGroupOutput, error)
 	DeletePlacementGroupRequest(*ec2.DeletePlacementGroupInput) (*request.Request, *ec2.DeletePlacementGroupOutput)
 
+	DeleteQueuedReservedInstances(*ec2.DeleteQueuedReservedInstancesInput) (*ec2.DeleteQueuedReservedInstancesOutput, error)
+	DeleteQueuedReservedInstancesWithContext(aws.Context, *ec2.DeleteQueuedReservedInstancesInput, ...request.Option) (*ec2.DeleteQueuedReservedInstancesOutput, error)
+	DeleteQueuedReservedInstancesRequest(*ec2.DeleteQueuedReservedInstancesInput) (*request.Request, *ec2.DeleteQueuedReservedInstancesOutput)
+
 	DeleteRoute(*ec2.DeleteRouteInput) (*ec2.DeleteRouteOutput, error)
 	DeleteRouteWithContext(aws.Context, *ec2.DeleteRouteInput, ...request.Option) (*ec2.DeleteRouteOutput, error)
 	DeleteRouteRequest(*ec2.DeleteRouteInput) (*request.Request, *ec2.DeleteRouteOutput)
@@ -1416,6 +1420,10 @@ type EC2API interface {
 	ModifyInstanceEventStartTime(*ec2.ModifyInstanceEventStartTimeInput) (*ec2.ModifyInstanceEventStartTimeOutput, error)
 	ModifyInstanceEventStartTimeWithContext(aws.Context, *ec2.ModifyInstanceEventStartTimeInput, ...request.Option) (*ec2.ModifyInstanceEventStartTimeOutput, error)
 	ModifyInstanceEventStartTimeRequest(*ec2.ModifyInstanceEventStartTimeInput) (*request.Request, *ec2.ModifyInstanceEventStartTimeOutput)
+
+	ModifyInstanceMetadataOptions(*ec2.ModifyInstanceMetadataOptionsInput) (*ec2.ModifyInstanceMetadataOptionsOutput, error)
+	ModifyInstanceMetadataOptionsWithContext(aws.Context, *ec2.ModifyInstanceMetadataOptionsInput, ...request.Option) (*ec2.ModifyInstanceMetadataOptionsOutput, error)
+	ModifyInstanceMetadataOptionsRequest(*ec2.ModifyInstanceMetadataOptionsInput) (*request.Request, *ec2.ModifyInstanceMetadataOptionsOutput)
 
 	ModifyInstancePlacement(*ec2.ModifyInstancePlacementInput) (*ec2.ModifyInstancePlacementOutput, error)
 	ModifyInstancePlacementWithContext(aws.Context, *ec2.ModifyInstancePlacementInput, ...request.Option) (*ec2.ModifyInstancePlacementOutput, error)

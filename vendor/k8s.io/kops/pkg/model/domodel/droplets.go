@@ -47,6 +47,7 @@ func (d *DropletBuilder) Build(c *fi.ModelBuilderContext) error {
 
 	// replace "." with "-" since DO API does not accept "."
 	clusterTag := do.TagKubernetesClusterNamePrefix + ":" + strings.Replace(d.ClusterName(), ".", "-", -1)
+	clusterMasterTag := do.TagKubernetesClusterMasterPrefix + ":" + strings.Replace(d.ClusterName(), ".", "-", -1)
 
 	masterIndexCount := 0
 	// In the future, DigitalOcean will use Machine API to manage groups,
@@ -71,6 +72,10 @@ func (d *DropletBuilder) Build(c *fi.ModelBuilderContext) error {
 			masterIndexCount++
 			clusterTagIndex := do.TagKubernetesClusterIndex + ":" + strconv.Itoa(masterIndexCount)
 			droplet.Tags = append(droplet.Tags, clusterTagIndex)
+			droplet.Tags = append(droplet.Tags, clusterMasterTag)
+			droplet.Tags = append(droplet.Tags, do.TagKubernetesClusterInstanceGroupPrefix+":"+"master-"+d.Cluster.Spec.Subnets[0].Region)
+		} else {
+			droplet.Tags = append(droplet.Tags, do.TagKubernetesClusterInstanceGroupPrefix+":"+"nodes")
 		}
 
 		userData, err := d.BootstrapScript.ResourceNodeUp(ig, d.Cluster)
