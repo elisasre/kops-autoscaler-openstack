@@ -117,7 +117,7 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 
 	{
 		key := "kops-controller.addons.k8s.io"
-		version := "1.15.0-alpha.1"
+		version := "1.17.0-alpha.1"
 
 		{
 			location := key + "/k8s-1.16.yaml"
@@ -396,7 +396,7 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 	if externalDNS == nil || !externalDNS.Disable {
 		{
 			key := "dns-controller.addons.k8s.io"
-			version := "1.15.0-alpha.1"
+			version := "1.17.0-alpha.1"
 
 			{
 				location := key + "/pre-k8s-1.6.yaml"
@@ -696,7 +696,7 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 			"k8s-1.6":     "2.3.0-kops.3",
 			"k8s-1.7":     "2.5.2-kops.2",
 			"k8s-1.8":     "2.5.2-kops.2",
-			"k8s-1.12":    "2.5.2-kops.2",
+			"k8s-1.12":    "2.5.2-kops.3",
 		}
 
 		{
@@ -775,7 +775,7 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 		versions := map[string]string{
 			"pre-k8s-1.6": "0.11.0-kops.1",
 			"k8s-1.6":     "0.11.0-kops.2",
-			"k8s-1.12":    "0.11.0-kops.2",
+			"k8s-1.12":    "0.11.0-kops.3",
 		}
 
 		{
@@ -827,8 +827,8 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 			"pre-k8s-1.6": "2.4.2-kops.1",
 			"k8s-1.6":     "2.6.9-kops.1",
 			"k8s-1.7":     "2.6.12-kops.1",
-			"k8s-1.7-v3":  "3.8.0-kops.1",
-			"k8s-1.12":    "3.9.1-kops.1",
+			"k8s-1.7-v3":  "3.8.0-kops.2",
+			"k8s-1.12":    "3.9.1-kops.3",
 		}
 
 		{
@@ -1050,12 +1050,14 @@ func (b *BootstrapChannelBuilder) buildAddons() *channelsapi.Addons {
 
 	if b.cluster.Spec.Networking.AmazonVPC != nil {
 		key := "networking.amazon-vpc-routed-eni"
+
 		versions := map[string]string{
 			"k8s-1.7":  "1.5.0-kops.1",
 			"k8s-1.8":  "1.5.0-kops.1",
 			"k8s-1.10": "1.5.0-kops.1",
-			"k8s-1.12": "1.5.4-kops.1",
+			"k8s-1.12": "1.5.5-kops.1",
 		}
+
 		{
 			id := "k8s-1.7"
 			location := key + "/" + id + ".yaml"
