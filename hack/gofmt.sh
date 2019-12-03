@@ -6,7 +6,7 @@ set -o pipefail
 
 GOFMT="gofmt -s -w"
 
-bad_files=$(git ls-files "*.go" | grep -v replace | grep -v vendor | xargs -I {} $GOFMT -l {})
+bad_files=$(git ls-files "*.go" | grep -vE '^\.replace|^vendor' | xargs -I {} $GOFMT -l {})
 if [[ -n "${bad_files}" ]]; then
   echo "FAIL: '$GOFMT' needs to be run on the following files: "
   echo "${bad_files}"
