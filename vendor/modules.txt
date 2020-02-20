@@ -111,6 +111,7 @@ github.com/davecgh/go-spew/spew
 github.com/denverdino/aliyungo/common
 github.com/denverdino/aliyungo/ecs
 github.com/denverdino/aliyungo/ess
+github.com/denverdino/aliyungo/metadata
 github.com/denverdino/aliyungo/oss
 github.com/denverdino/aliyungo/ram
 github.com/denverdino/aliyungo/slb
@@ -179,7 +180,7 @@ github.com/googleapis/gax-go/v2
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
-# github.com/gophercloud/gophercloud v0.0.0-20190216224116-dcc6e84aef1b
+# github.com/gophercloud/gophercloud v0.7.1-0.20200116011225-46fdd1830e9a
 github.com/gophercloud/gophercloud
 github.com/gophercloud/gophercloud/internal
 github.com/gophercloud/gophercloud/openstack
@@ -343,18 +344,18 @@ go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/propagation
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
+# golang.org/x/crypto v0.0.0-20191202143827-86a70503ff7e
+golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
+# golang.org/x/net v0.0.0-20191126235420-ef20fe5d7933
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -378,7 +379,7 @@ golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
+# golang.org/x/sys v0.0.0-20191128015809-6d18c012aee9
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -389,7 +390,7 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20191124021906-f5828fc9a103
+# golang.org/x/tools v0.0.0-20191203134012-c197fd4bf371
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/inspect
 golang.org/x/tools/go/ast/astutil
@@ -479,7 +480,7 @@ gopkg.in/gcfg.v1/types
 gopkg.in/inf.v0
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.2
+# gopkg.in/yaml.v2 v2.2.7
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20190905181640-827449938966
 gopkg.in/yaml.v3
@@ -752,7 +753,7 @@ k8s.io/cloud-provider/volume/helpers
 k8s.io/csi-translation-lib/plugins
 # k8s.io/klog v0.3.1
 k8s.io/klog
-# k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb => k8s.io/kops v1.4.2-0.20191126035309-501baf7e56bf
+# k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb => k8s.io/kops v1.17.0-alpha.4
 k8s.io/kops
 k8s.io/kops/channels/pkg/api
 k8s.io/kops/cmd/kops-controller/pkg/config
