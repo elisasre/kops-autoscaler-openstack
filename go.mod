@@ -44,7 +44,7 @@ replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20190819143045
 
 replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.0.0-20190819142756-13daafd3604f
 
-replace k8s.io/kops => k8s.io/kops v1.4.2-0.20191126035309-501baf7e56bf
+replace k8s.io/kops => k8s.io/kops v1.17.0-alpha.4
 
 require (
 	cloud.google.com/go v0.45.1 // indirect
@@ -60,7 +60,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/gophercloud/gophercloud v0.0.0-20190216224116-dcc6e84aef1b
+	github.com/gophercloud/gophercloud v0.7.1-0.20200116011225-46fdd1830e9a
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.11.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect

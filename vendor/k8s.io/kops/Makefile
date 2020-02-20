@@ -56,9 +56,9 @@ unexport KOPS_BASE_URL KOPS_CLUSTER_NAME KOPS_RUN_OBSOLETE_VERSION KOPS_STATE_ST
 unexport SKIP_REGION_CHECK S3_ACCESS_KEY_ID S3_ENDPOINT S3_REGION S3_SECRET_ACCESS_KEY VSPHERE_USERNAME VSPHERE_PASSWORD
 
 # Keep in sync with upup/models/cloudup/resources/addons/dns-controller/
-DNS_CONTROLLER_TAG=1.17.0-alpha.1
+DNS_CONTROLLER_TAG=1.17.0-alpha.4
 # Keep in sync with upup/models/cloudup/resources/addons/kops-controller.addons.k8s.io/
-KOPS_CONTROLLER_TAG=1.17.0-alpha.1
+KOPS_CONTROLLER_TAG=1.17.0-alpha.4
 
 # Keep in sync with logic in get_workspace_status
 # TODO: just invoke tools/get_workspace_status.sh?
@@ -232,7 +232,11 @@ crossbuild-nodeup: ${DIST}/linux/amd64/nodeup
 crossbuild-nodeup-in-docker:
 	docker pull golang:${GOVERSION} # Keep golang image up to date
 	docker run --name=nodeup-build-${UNIQUE} -e STATIC_BUILD=yes -e VERSION=${VERSION} -v ${MAKEDIR}:/go/src/k8s.io/kops golang:${GOVERSION} make -C /go/src/k8s.io/kops/ crossbuild-nodeup
-	docker cp nodeup-build-${UNIQUE}:/go/.build .
+	docker start nodeup-build-${UNIQUE}
+	docker exec nodeup-build-${UNIQUE} chown -R ${UID}:${GID} /go/src/k8s.io/kops/.build
+	docker cp nodeup-build-${UNIQUE}:/go/src/k8s.io/kops/.build .
+	docker kill nodeup-build-${UNIQUE}
+	docker rm nodeup-build-${UNIQUE}
 
 .PHONY: ${DIST}/darwin/amd64/kops
 ${DIST}/darwin/amd64/kops: ${BINDATA_TARGETS}
@@ -595,10 +599,11 @@ ${CHANNELS}:
 .PHONY: release-tag
 release-tag:
 	git tag ${KOPS_RELEASE_VERSION}
+	git tag v${KOPS_RELEASE_VERSION}
 
 .PHONY: release-github
 release-github:
-	shipbot -tag ${KOPS_RELEASE_VERSION} -config .shipbot.yaml
+	shipbot -tag v${KOPS_RELEASE_VERSION} -config .shipbot.yaml
 
 # --------------------------------------------------
 # API / embedding examples
@@ -763,7 +768,7 @@ push-node-authorizer:
 bazel-protokube-export:
 	mkdir -p ${BAZELIMAGES}
 	bazel build ${BAZEL_CONFIG} --action_env=PROTOKUBE_TAG=${PROTOKUBE_TAG} --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //images:protokube.tar.gz //images:protokube.tar.gz.sha1  //images:protokube.tar.gz.sha256
-	cp -fp bazel-bin/images/bazel-out/k8-fastbuild/bin/images/protokube.tar.gz ${BAZELIMAGES}/protokube.tar.gz
+	cp -fp bazel-bin/images/protokube.tar.gz ${BAZELIMAGES}/protokube.tar.gz
 	cp -fp bazel-bin/images/protokube.tar.gz.sha1 ${BAZELIMAGES}/protokube.tar.gz.sha1
 	cp -fp bazel-bin/images/protokube.tar.gz.sha256 ${BAZELIMAGES}/protokube.tar.gz.sha256
 

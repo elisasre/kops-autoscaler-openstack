@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kops/pkg/apis/kops"
+
 	"k8s.io/kops/pkg/featureflag"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
@@ -69,6 +71,8 @@ type LaunchConfiguration struct {
 	InstanceMonitoring *bool
 	// InstanceType is the machine type to use
 	InstanceType *string
+	// RootVolumeDeleteOnTermination states if the root volume will be deleted after instance termination
+	RootVolumeDeleteOnTermination *bool
 	// If volume type is io1, then we need to specify the number of Iops.
 	RootVolumeIops *int64
 	// RootVolumeOptimization enables EBS optimization for an instance
@@ -165,7 +169,9 @@ func (e *LaunchConfiguration) Find(c *fi.Context) (*LaunchConfiguration, error) 
 		Tenancy:                lc.PlacementTenancy,
 	}
 
-	if lc.KeyName != nil {
+	// Only assign keyName if the existing launch config has one
+	// lc.KeyName comes back as an empty string when there is no key assigned
+	if lc.KeyName != nil && *lc.KeyName != "" {
 		actual.SSHKey = &SSHKey{Name: lc.KeyName}
 	}
 
@@ -197,6 +203,7 @@ func (e *LaunchConfiguration) Find(c *fi.Context) (*LaunchConfiguration, error) 
 			actual.RootVolumeSize = b.Ebs.VolumeSize
 			actual.RootVolumeType = b.Ebs.VolumeType
 			actual.RootVolumeIops = b.Ebs.Iops
+			actual.RootVolumeDeleteOnTermination = b.Ebs.DeleteOnTermination
 		} else {
 			_, d := BlockDeviceMappingFromAutoscaling(b)
 			actual.BlockDeviceMappings = append(actual.BlockDeviceMappings, d)
@@ -237,6 +244,10 @@ func (e *LaunchConfiguration) Find(c *fi.Context) (*LaunchConfiguration, error) 
 func (e *LaunchConfiguration) Run(c *fi.Context) error {
 	// TODO: Make Normalize a standard method
 	e.Normalize()
+
+	if e.SSHKey == nil && !useSSHKey(c.Cluster) {
+		e.SSHKey = &SSHKey{}
+	}
 
 	return fi.DefaultDeltaRunMethod(e, c)
 }
@@ -391,7 +402,7 @@ func (t *LaunchConfiguration) buildRootDevice(cloud awsup.AWSCloud) (map[string]
 	bm := make(map[string]*BlockDeviceMapping)
 
 	bm[aws.StringValue(img.RootDeviceName)] = &BlockDeviceMapping{
-		EbsDeleteOnTermination: aws.Bool(true),
+		EbsDeleteOnTermination: t.RootVolumeDeleteOnTermination,
 		EbsVolumeSize:          t.RootVolumeSize,
 		EbsVolumeType:          t.RootVolumeType,
 		EbsVolumeIops:          t.RootVolumeIops,
@@ -495,7 +506,7 @@ func (_ *LaunchConfiguration) RenderTerraform(t *terraform.TerraformTarget, a, e
 					VolumeType:          bdm.EbsVolumeType,
 					VolumeSize:          bdm.EbsVolumeSize,
 					Iops:                bdm.EbsVolumeIops,
-					DeleteOnTermination: fi.Bool(true),
+					DeleteOnTermination: bdm.EbsDeleteOnTermination,
 				}
 			}
 		}
@@ -516,7 +527,7 @@ func (_ *LaunchConfiguration) RenderTerraform(t *terraform.TerraformTarget, a, e
 			for _, deviceName := range sets.StringKeySet(additionalDevices).List() {
 				bdm := additionalDevices[deviceName]
 				tf.EBSBlockDevice = append(tf.EBSBlockDevice, &terraformBlockDevice{
-					DeleteOnTermination: fi.Bool(true),
+					DeleteOnTermination: bdm.EbsDeleteOnTermination,
 					DeviceName:          fi.String(deviceName),
 					Encrypted:           bdm.EbsEncrypted,
 					VolumeSize:          bdm.EbsVolumeSize,
@@ -605,7 +616,7 @@ func (_ *LaunchConfiguration) RenderCloudformation(t *cloudformation.Cloudformat
 		cf.SpotPrice = aws.String(e.SpotPrice)
 	}
 
-	if e.SSHKey != nil {
+	if e.SSHKey != nil && !e.SSHKey.NoSSHKey() {
 		if e.SSHKey.Name == nil {
 			return fmt.Errorf("SSHKey Name not set")
 		}
@@ -649,7 +660,7 @@ func (_ *LaunchConfiguration) RenderCloudformation(t *cloudformation.Cloudformat
 						VolumeType:          bdm.EbsVolumeType,
 						VolumeSize:          bdm.EbsVolumeSize,
 						Iops:                bdm.EbsVolumeIops,
-						DeleteOnTermination: fi.Bool(true),
+						DeleteOnTermination: bdm.EbsDeleteOnTermination,
 					},
 				}
 				cf.BlockDeviceMappings = append(cf.BlockDeviceMappings, d)
@@ -672,7 +683,7 @@ func (_ *LaunchConfiguration) RenderCloudformation(t *cloudformation.Cloudformat
 					Ebs: &cloudformationBlockDeviceEBS{
 						VolumeType:          bdm.EbsVolumeType,
 						VolumeSize:          bdm.EbsVolumeSize,
-						DeleteOnTermination: fi.Bool(true),
+						DeleteOnTermination: bdm.EbsDeleteOnTermination,
 						Encrypted:           bdm.EbsEncrypted,
 					},
 				}
@@ -771,4 +782,12 @@ func (e *LaunchConfiguration) FindDeletions(c *fi.Context) ([]fi.Deletion, error
 	klog.V(2).Infof("will delete launch configurations: %v", removals)
 
 	return removals, nil
+}
+
+func useSSHKey(c *kops.Cluster) bool {
+	if c != nil {
+		sshKeyName := c.Spec.SSHKeyName
+		return sshKeyName != nil && *sshKeyName != ""
+	}
+	return true
 }
