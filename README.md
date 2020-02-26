@@ -43,3 +43,9 @@ Create secrets, set env variables that you usually use when doing things with ko
 ### How to contribute
 
 Make issues/PRs
+
+### Debug in Production
+
+This binary do have pprof debugging options available in localhost:6060/debug/pprof/ by default.
+When this binary is executed inside kubernetes cluster, port-forward that port to your localhost and start debugging.
+Command for that is `kubectl port-forward <pod> 6060:6060`

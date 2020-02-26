@@ -2,7 +2,11 @@ package autoscaler
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"time"
+	// import pprof package, needed for debugging
+	_ "net/http/pprof"
 
 	"github.com/golang/glog"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -35,6 +39,10 @@ type openstackASG struct {
 
 // Run will execute cluster check in loop periodically
 func Run(opts *Options) error {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	registryBase, err := vfs.Context.BuildVfsPath(opts.StateStore)
 	if err != nil {
 		return fmt.Errorf("error parsing registry path %q: %v", opts.StateStore, err)
