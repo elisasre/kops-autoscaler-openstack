@@ -2,9 +2,9 @@ package autoscaler
 
 import (
 	"fmt"
-	"time"
 	"log"
 	"net/http"
+	"time"
 	// import pprof package, needed for debugging
 	_ "net/http/pprof"
 
