@@ -158,6 +158,7 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 		currentIGs[ig.Name] = 0
 	}
 
+	osInstances.Reset()
 	for _, instance := range instances {
 		val, ok := instance.Metadata["k8s"]
 		ig, ok2 := instance.Metadata["KopsInstanceGroup"]
