@@ -10,6 +10,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kops/pkg/apis/kops"
 	"k8s.io/kops/pkg/client/simple"
@@ -37,6 +40,16 @@ type openstackASG struct {
 	Cloud     openstack.OpenstackCloud
 }
 
+var (
+	osInstances = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_instance",
+			Help: "Openstack instance",
+		},
+		[]string{"name", "id", "status"},
+	)
+)
+
 // Run will execute cluster check in loop periodically
 func Run(opts *Options) error {
 	go func() {
@@ -53,6 +66,9 @@ func Run(opts *Options) error {
 		opts:      opts,
 		clientset: clientset,
 	}
+
+	http.Handle("/metrics", promhttp.Handler())
+	go http.ListenAndServe(":2112", nil)
 
 	fails := 0
 	for {
@@ -146,6 +162,7 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 		val, ok := instance.Metadata["k8s"]
 		ig, ok2 := instance.Metadata["KopsInstanceGroup"]
 		if ok && ok2 && val == cluster.Name {
+			osInstances.WithLabelValues(instance.Name, instance.ID, instance.Status).Set(1)
 			currentVal, found := currentIGs[ig]
 			if found {
 				currentIGs[ig] = currentVal + 1
