@@ -25,6 +25,20 @@ Flags:
       --state-store string       KOPS State store (default "")
 ```
 
+
+Prometheus metrics are automatically exposed in port 2112.
+These metrics contains information about current Kops cluster OpenStack instances.
+
+Example:
+
+```
+# HELP openstack_instance Openstack instance
+# TYPE openstack_instance gauge
+openstack_instance{id="18b8451c-a7f0-4d26-b251-79080ff2518c",name="nodes-1-test-k8s-local",status="ACTIVE"} 1
+openstack_instance{id="1f8f641f-2f95-4f42-bc69-70fbb9a7eed0",name="nodes-2-test-k8s-local",status="ACTIVE"} 1
+...
+```
+
 ### Copying bindata from kops
 
 Kops needs its bindata to be compiled and copied under vendor folder.
