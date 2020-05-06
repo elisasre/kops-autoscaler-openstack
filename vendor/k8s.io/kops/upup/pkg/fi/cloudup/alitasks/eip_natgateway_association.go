@@ -46,7 +46,7 @@ type EIP struct {
 var _ fi.CompareWithID = &EIP{}
 
 func (e *EIP) CompareWithID() *string {
-	return e.Name
+	return e.ID
 }
 
 func (e *EIP) Find(c *fi.Context) (*EIP, error) {
@@ -141,8 +141,8 @@ type terraformEip struct {
 }
 
 type terraformEipAssociation struct {
-	InstanceID   *terraform.Literal `json:"instance_id,omitempty"`
-	AllocationID *terraform.Literal `json:"allocation_id,omitempty"`
+	InstanceID   *terraform.Literal `json:"instance_id,omitempty" cty:"instance_id"`
+	AllocationID *terraform.Literal `json:"allocation_id,omitempty" cty:"allocation_id"`
 }
 
 func (_ *EIP) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *EIP) error {

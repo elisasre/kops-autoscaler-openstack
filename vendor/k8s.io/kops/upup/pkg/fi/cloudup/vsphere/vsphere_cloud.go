@@ -69,6 +69,13 @@ func (c *VSphereCloud) ProviderID() kops.CloudProviderID {
 	return kops.CloudProviderVSphere
 }
 
+// Region returns the region bound to the VsphereCloud.
+func (c *VSphereCloud) Region() string {
+	// TODO: map region with vCenter cluster, or datacenter, or datastore?
+	region := c.Cluster
+	return region
+}
+
 // NewVSphereCloud returns VSphereCloud instance for given ClusterSpec.
 func NewVSphereCloud(spec *kops.ClusterSpec) (*VSphereCloud, error) {
 	server := *spec.CloudConfig.VSphereServer
@@ -122,6 +129,12 @@ func (c *VSphereCloud) DeleteGroup(g *cloudinstances.CloudInstanceGroup) error {
 func (c *VSphereCloud) DeleteInstance(i *cloudinstances.CloudInstanceGroupMember) error {
 	klog.V(8).Infof("vSphere cloud provider DeleteInstance not implemented yet")
 	return fmt.Errorf("vSphere cloud provider does not support deleting cloud instances at this time.")
+}
+
+// DetachInstance is not implemented yet. It needs to cause a cloud instance to no longer be counted against the group's size limits.
+func (c *VSphereCloud) DetachInstance(i *cloudinstances.CloudInstanceGroupMember) error {
+	klog.V(8).Info("vSphere cloud provider DetachInstance not implemented yet")
+	return fmt.Errorf("vSphere cloud provider does not support surging")
 }
 
 // DNS returns dnsprovider interface for this vSphere cloud.

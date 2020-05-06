@@ -18,7 +18,9 @@ package alitasks
 
 import (
 	"fmt"
+	"net/url"
 
+	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ram"
 
 	"k8s.io/klog"
@@ -32,9 +34,9 @@ import (
 type RAMPolicy struct {
 	Lifecycle      *fi.Lifecycle
 	Name           *string
-	PolicyDocument *string
 	RamRole        *RAMRole
 	PolicyType     *string
+	PolicyDocument fi.Resource
 }
 
 var _ fi.CompareWithID = &RAMPolicy{}
@@ -46,34 +48,38 @@ func (r *RAMPolicy) CompareWithID() *string {
 func (r *RAMPolicy) Find(c *fi.Context) (*RAMPolicy, error) {
 	cloud := c.Cloud.(aliup.ALICloud)
 
-	policyQueryRequest := ram.PolicyQueryRequest{
+	policyRequest := ram.PolicyRequest{
+		PolicyName: fi.StringValue(r.Name),
 		PolicyType: ram.Type(fi.StringValue(r.PolicyType)),
 	}
-	policyList, err := cloud.RamClient().ListPolicies(policyQueryRequest)
-
+	policyResp, err := cloud.RamClient().GetPolicy(policyRequest)
 	if err != nil {
-		return nil, fmt.Errorf("error listing RamPolicy: %v", err)
-	}
-
-	if len(policyList.Policies.Policy) == 0 {
-		return nil, nil
-	}
-
-	for _, policy := range policyList.Policies.Policy {
-		if policy.PolicyName == fi.StringValue(r.Name) {
-
-			klog.V(2).Infof("found matching RamPolicy with name: %q", *r.Name)
-			actual := &RAMPolicy{}
-			actual.Name = fi.String(policy.PolicyName)
-			actual.PolicyType = fi.String(string(policy.PolicyType))
-
-			// Ignore "system" fields
-			actual.Lifecycle = r.Lifecycle
-			return actual, nil
+		if e, ok := err.(*common.Error); ok && e.StatusCode == 404 {
+			klog.V(2).Infof("no RamPolicy with name: %q", *r.Name)
+			return nil, nil
 		}
+		return nil, fmt.Errorf("error get RamPolicy %s: %v", *r.Name, err)
 	}
 
-	return nil, nil
+	klog.V(2).Infof("found matching RamPolicy with name: %q", *r.Name)
+	policy := policyResp.Policy
+
+	defaultPolicy, err := url.QueryUnescape(policyResp.DefaultPolicyVersion.PolicyDocument)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing PolicyDocument for RAMPolicy %q: %v", fi.StringValue(r.Name), err)
+	}
+
+	actual := &RAMPolicy{
+		Name:           fi.String(policy.PolicyName),
+		PolicyType:     fi.String(string(policy.PolicyType)),
+		PolicyDocument: fi.WrapResource(fi.NewStringResource(defaultPolicy)),
+	}
+
+	// Avoid spurious changes
+	actual.RamRole = r.RamRole
+	actual.Lifecycle = r.Lifecycle
+
+	return actual, nil
 }
 
 func (r *RAMPolicy) Run(c *fi.Context) error {
@@ -93,6 +99,10 @@ func (_ *RAMPolicy) CheckChanges(a, e, changes *RAMPolicy) error {
 }
 
 func (_ *RAMPolicy) RenderALI(t *aliup.ALIAPITarget, a, e, changes *RAMPolicy) error {
+	policy, err := e.policyDocumentString()
+	if err != nil {
+		return fmt.Errorf("error rendering PolicyDocument: %v", err)
+	}
 
 	policyRequest := ram.PolicyRequest{}
 
@@ -101,7 +111,7 @@ func (_ *RAMPolicy) RenderALI(t *aliup.ALIAPITarget, a, e, changes *RAMPolicy) e
 
 		policyRequest = ram.PolicyRequest{
 			PolicyName:     fi.StringValue(e.Name),
-			PolicyDocument: fi.StringValue(e.PolicyDocument),
+			PolicyDocument: policy,
 			PolicyType:     ram.Type(fi.StringValue(e.PolicyType)),
 		}
 
@@ -126,23 +136,35 @@ func (_ *RAMPolicy) RenderALI(t *aliup.ALIAPITarget, a, e, changes *RAMPolicy) e
 
 }
 
+func (r *RAMPolicy) policyDocumentString() (string, error) {
+	if r.PolicyDocument == nil {
+		return "", nil
+	}
+	return fi.ResourceAsString(r.PolicyDocument)
+}
+
 type terraformRAMPolicy struct {
-	Name     *string `json:"name,omitempty"`
-	Document *string `json:"document,omitempty"`
+	Name     *string `json:"name,omitempty" cty:"name"`
+	Document *string `json:"document,omitempty" cty:"document"`
 }
 
 type terraformRAMPolicyAttach struct {
-	PolicyName *terraform.Literal `json:"policy_name,omitempty"`
-	PolicyType *string            `json:"policy_type,omitempty"`
-	RoleName   *terraform.Literal `json:"role_name,omitempty"`
+	PolicyName *terraform.Literal `json:"policy_name,omitempty" cty:"policy_name"`
+	PolicyType *string            `json:"policy_type,omitempty" cty:"policy_type"`
+	RoleName   *terraform.Literal `json:"role_name,omitempty" cty:"role_name"`
 }
 
 func (_ *RAMPolicy) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *RAMPolicy) error {
+	policyString, err := e.policyDocumentString()
+	if err != nil {
+		return fmt.Errorf("error rendering PolicyDocument: %v", err)
+	}
+
 	tf := &terraformRAMPolicy{
 		Name:     e.Name,
-		Document: e.PolicyDocument,
+		Document: fi.String(policyString),
 	}
-	err := t.RenderResource("alicloud_ram_policy", *e.Name, tf)
+	err = t.RenderResource("alicloud_ram_policy", *e.Name, tf)
 	if err != nil {
 		return err
 	}

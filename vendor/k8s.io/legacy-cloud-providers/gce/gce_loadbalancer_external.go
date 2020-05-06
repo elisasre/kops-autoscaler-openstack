@@ -1,3 +1,5 @@
+// +build !providerless
+
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -31,9 +33,12 @@ import (
 	servicehelpers "k8s.io/cloud-provider/service/helpers"
 	utilnet "k8s.io/utils/net"
 
-	computealpha "google.golang.org/api/compute/v0.alpha"
 	compute "google.golang.org/api/compute/v1"
 	"k8s.io/klog"
+)
+
+const (
+	errStrLbNoHosts = "cannot EnsureLoadBalancer() with no hosts"
 )
 
 // ensureExternalLoadBalancer is the external implementation of LoadBalancer.EnsureLoadBalancer.
@@ -46,7 +51,7 @@ import (
 // each is needed.
 func (g *Cloud) ensureExternalLoadBalancer(clusterName string, clusterID string, apiService *v1.Service, existingFwdRule *compute.ForwardingRule, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	if len(nodes) == 0 {
-		return nil, fmt.Errorf("Cannot EnsureLoadBalancer() with no hosts")
+		return nil, fmt.Errorf(errStrLbNoHosts)
 	}
 
 	hostNames := nodeNames(nodes)
@@ -508,7 +513,7 @@ func (g *Cloud) ensureTargetPoolAndHealthCheck(tpExists, tpNeedsRecreation bool,
 		klog.Infof("ensureTargetPoolAndHealthCheck(%s): Updated target pool (with %d hosts).", lbRefStr, len(hosts))
 		if hcToCreate != nil {
 			if hc, err := g.ensureHTTPHealthCheck(hcToCreate.Name, hcToCreate.RequestPath, int32(hcToCreate.Port)); err != nil || hc == nil {
-				return fmt.Errorf("Failed to ensure health check for %v port %d path %v: %v", loadBalancerName, hcToCreate.Port, hcToCreate.RequestPath, err)
+				return fmt.Errorf("failed to ensure health check for %v port %d path %v: %v", loadBalancerName, hcToCreate.Port, hcToCreate.RequestPath, err)
 			}
 		}
 	} else {
@@ -538,7 +543,7 @@ func (g *Cloud) createTargetPoolAndHealthCheck(svc *v1.Service, name, serviceNam
 		var err error
 		hcRequestPath, hcPort := hc.RequestPath, hc.Port
 		if hc, err = g.ensureHTTPHealthCheck(hc.Name, hc.RequestPath, int32(hc.Port)); err != nil || hc == nil {
-			return fmt.Errorf("Failed to ensure health check for %v port %d path %v: %v", name, hcPort, hcRequestPath, err)
+			return fmt.Errorf("failed to ensure health check for %v port %d path %v: %v", name, hcPort, hcRequestPath, err)
 		}
 		hcLinks = append(hcLinks, hc.SelfLink)
 	}
@@ -585,16 +590,32 @@ func (g *Cloud) updateTargetPool(loadBalancerName string, hosts []*gceInstance) 
 		toRemove = append(toRemove, &compute.InstanceReference{Instance: link})
 	}
 
-	if len(toAdd) > 0 {
-		if err := g.AddInstancesToTargetPool(loadBalancerName, g.region, toAdd); err != nil {
+	for len(toAdd) > 0 {
+		// Do not remove more than maxInstancesPerTargetPoolUpdate in a single call.
+		instancesCount := len(toAdd)
+		if instancesCount > maxInstancesPerTargetPoolUpdate {
+			instancesCount = maxInstancesPerTargetPoolUpdate
+		}
+		// The operation to add 1000 instances is fairly long (may take minutes), so
+		// we don't need to worry about saturating QPS limits.
+		if err := g.AddInstancesToTargetPool(loadBalancerName, g.region, toAdd[:instancesCount]); err != nil {
 			return err
 		}
+		toAdd = toAdd[instancesCount:]
 	}
 
-	if len(toRemove) > 0 {
-		if err := g.RemoveInstancesFromTargetPool(loadBalancerName, g.region, toRemove); err != nil {
+	for len(toRemove) > 0 {
+		// Do not remove more than maxInstancesPerTargetPoolUpdate in a single call.
+		instancesCount := len(toRemove)
+		if instancesCount > maxInstancesPerTargetPoolUpdate {
+			instancesCount = maxInstancesPerTargetPoolUpdate
+		}
+		// The operation to remove 1000 instances is fairly long (may take minutes), so
+		// we don't need to worry about saturating QPS limits.
+		if err := g.RemoveInstancesFromTargetPool(loadBalancerName, g.region, toRemove[:instancesCount]); err != nil {
 			return err
 		}
+		toRemove = toRemove[instancesCount:]
 	}
 
 	// Try to verify that the correct number of nodes are now in the target pool.
@@ -607,7 +628,7 @@ func (g *Cloud) updateTargetPool(loadBalancerName string, hosts []*gceInstance) 
 	if len(updatedPool.Instances) != len(hosts) {
 		klog.Errorf("Unexpected number of instances (%d) in target pool %s after updating (expected %d). Instances in updated pool: %s",
 			len(updatedPool.Instances), loadBalancerName, len(hosts), strings.Join(updatedPool.Instances, ","))
-		return fmt.Errorf("Unexpected number of instances (%d) in target pool %s after update (expected %d)", len(updatedPool.Instances), loadBalancerName, len(hosts))
+		return fmt.Errorf("unexpected number of instances (%d) in target pool %s after update (expected %d)", len(updatedPool.Instances), loadBalancerName, len(hosts))
 	}
 	return nil
 }
@@ -636,7 +657,7 @@ func makeHTTPHealthCheck(name, path string, port int32) *compute.HttpHealthCheck
 // The HC interval will be reconciled to 8 seconds.
 // If the existing health check is larger than the default interval,
 // the configuration will be kept.
-func mergeHTTPHealthChecks(hc, newHC *compute.HttpHealthCheck) *compute.HttpHealthCheck {
+func mergeHTTPHealthChecks(hc, newHC *compute.HttpHealthCheck) {
 	if hc.CheckIntervalSec > newHC.CheckIntervalSec {
 		newHC.CheckIntervalSec = hc.CheckIntervalSec
 	}
@@ -649,16 +670,23 @@ func mergeHTTPHealthChecks(hc, newHC *compute.HttpHealthCheck) *compute.HttpHeal
 	if hc.HealthyThreshold > newHC.HealthyThreshold {
 		newHC.HealthyThreshold = hc.HealthyThreshold
 	}
-	return newHC
 }
 
 // needToUpdateHTTPHealthChecks checks whether the http healthcheck needs to be
 // updated.
 func needToUpdateHTTPHealthChecks(hc, newHC *compute.HttpHealthCheck) bool {
-	changed := hc.Port != newHC.Port || hc.RequestPath != newHC.RequestPath || hc.Description != newHC.Description
-	changed = changed || hc.CheckIntervalSec < newHC.CheckIntervalSec || hc.TimeoutSec < newHC.TimeoutSec
-	changed = changed || hc.UnhealthyThreshold < newHC.UnhealthyThreshold || hc.HealthyThreshold < newHC.HealthyThreshold
-	return changed
+	switch {
+	case
+		hc.Port != newHC.Port,
+		hc.RequestPath != newHC.RequestPath,
+		hc.Description != newHC.Description,
+		hc.CheckIntervalSec < newHC.CheckIntervalSec,
+		hc.TimeoutSec < newHC.TimeoutSec,
+		hc.UnhealthyThreshold < newHC.UnhealthyThreshold,
+		hc.HealthyThreshold < newHC.HealthyThreshold:
+		return true
+	}
+	return false
 }
 
 func (g *Cloud) ensureHTTPHealthCheck(name, path string, port int32) (hc *compute.HttpHealthCheck, err error) {
@@ -681,7 +709,7 @@ func (g *Cloud) ensureHTTPHealthCheck(name, path string, port int32) (hc *comput
 	klog.V(4).Infof("Checking http health check params %s", name)
 	if needToUpdateHTTPHealthChecks(hc, newHC) {
 		klog.Warningf("Health check %v exists but parameters have drifted - updating...", name)
-		newHC = mergeHTTPHealthChecks(hc, newHC)
+		mergeHTTPHealthChecks(hc, newHC)
 		if err := g.UpdateHTTPHealthCheck(newHC); err != nil {
 			klog.Warningf("Failed to reconcile http health check %v parameters", name)
 			return nil, err
@@ -790,7 +818,7 @@ func loadBalancerPortRange(ports []v1.ServicePort) (string, error) {
 
 	// The service controller verified all the protocols match on the ports, just check and use the first one
 	if ports[0].Protocol != v1.ProtocolTCP && ports[0].Protocol != v1.ProtocolUDP {
-		return "", fmt.Errorf("Invalid protocol %s, only TCP and UDP are supported", string(ports[0].Protocol))
+		return "", fmt.Errorf("invalid protocol %s, only TCP and UDP are supported", string(ports[0].Protocol))
 	}
 
 	minPort := int32(65536)
@@ -863,7 +891,7 @@ func (g *Cloud) ensureHTTPHealthCheckFirewall(svc *v1.Service, serviceName, ipAd
 	if !isNodesHealthCheck {
 		desc = makeFirewallDescription(serviceName, ipAddress)
 	}
-	sourceRanges := lbSrcRngsFlag.ipn
+	sourceRanges := l4LbSrcRngsFlag.ipn
 	ports := []v1.ServicePort{{Protocol: "tcp", Port: hcPort}}
 
 	fwName := MakeHealthCheckFirewallName(clusterID, hcName, isNodesHealthCheck)
@@ -903,29 +931,17 @@ func createForwardingRule(s CloudForwardingRuleService, name, serviceName, regio
 	desc := makeServiceDescription(serviceName)
 	ipProtocol := string(ports[0].Protocol)
 
-	switch netTier {
-	case cloud.NetworkTierPremium:
-		rule := &compute.ForwardingRule{
-			Name:        name,
-			Description: desc,
-			IPAddress:   ipAddress,
-			IPProtocol:  ipProtocol,
-			PortRange:   portRange,
-			Target:      target,
-		}
-		err = s.CreateRegionForwardingRule(rule, region)
-	default:
-		rule := &computealpha.ForwardingRule{
-			Name:        name,
-			Description: desc,
-			IPAddress:   ipAddress,
-			IPProtocol:  ipProtocol,
-			PortRange:   portRange,
-			Target:      target,
-			NetworkTier: netTier.ToGCEValue(),
-		}
-		err = s.CreateAlphaRegionForwardingRule(rule, region)
+	rule := &compute.ForwardingRule{
+		Name:        name,
+		Description: desc,
+		IPAddress:   ipAddress,
+		IPProtocol:  ipProtocol,
+		PortRange:   portRange,
+		Target:      target,
+		NetworkTier: netTier.ToGCEValue(),
 	}
+
+	err = s.CreateRegionForwardingRule(rule, region)
 
 	if err != nil && !isHTTPErrorCode(err, http.StatusConflict) {
 		return err
@@ -1016,27 +1032,15 @@ func ensureStaticIP(s CloudAddressService, name, serviceName, region, existingIP
 	desc := makeServiceDescription(serviceName)
 
 	var creationErr error
-	switch netTier {
-	case cloud.NetworkTierPremium:
-		addressObj := &compute.Address{
-			Name:        name,
-			Description: desc,
-		}
-		if existingIP != "" {
-			addressObj.Address = existingIP
-		}
-		creationErr = s.ReserveRegionAddress(addressObj, region)
-	default:
-		addressObj := &computealpha.Address{
-			Name:        name,
-			Description: desc,
-			NetworkTier: netTier.ToGCEValue(),
-		}
-		if existingIP != "" {
-			addressObj.Address = existingIP
-		}
-		creationErr = s.ReserveAlphaRegionAddress(addressObj, region)
+	addressObj := &compute.Address{
+		Name:        name,
+		Description: desc,
+		NetworkTier: netTier.ToGCEValue(),
 	}
+	if existingIP != "" {
+		addressObj.Address = existingIP
+	}
+	creationErr = s.ReserveRegionAddress(addressObj, region)
 
 	if creationErr != nil {
 		// GCE returns StatusConflict if the name conflicts; it returns
@@ -1047,6 +1051,18 @@ func ensureStaticIP(s CloudAddressService, name, serviceName, region, existingIP
 		existed = true
 	}
 
+	// If address exists, get it by IP, because name might be different.
+	// This can specifically happen if the IP was changed from ephemeral to static,
+	// which results in a new name for the IP.
+	if existingIP != "" {
+		addr, err := s.GetRegionAddressByIP(region, existingIP)
+		if err != nil {
+			return "", false, fmt.Errorf("error getting static IP address: %v", err)
+		}
+		return addr.Address, existed, nil
+	}
+
+	// Otherwise, get address by name
 	addr, err := s.GetRegionAddress(name, region)
 	if err != nil {
 		return "", false, fmt.Errorf("error getting static IP address: %v", err)

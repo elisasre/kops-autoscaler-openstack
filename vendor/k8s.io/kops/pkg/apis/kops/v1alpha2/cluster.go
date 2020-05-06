@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // +genclient
@@ -56,6 +57,8 @@ type ClusterSpec struct {
 	CloudProvider string `json:"cloudProvider,omitempty"`
 	// GossipConfig for the cluster assuming the use of gossip DNS
 	GossipConfig *GossipConfig `json:"gossipConfig,omitempty"`
+	// Container runtime to use for Kubernetes
+	ContainerRuntime string `json:"containerRuntime,omitempty"`
 	// The version of kubernetes to install (optional, and can be a "spec" like stable)
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 	// Configuration of subnets we are targeting
@@ -132,6 +135,8 @@ type ClusterSpec struct {
 	//   'external' do not apply updates automatically - they are applied manually or by an external system
 	//   missing: default policy (currently OS security upgrades that do not require a reboot)
 	UpdatePolicy *string `json:"updatePolicy,omitempty"`
+	// ExternalPolicies allows the insertion of pre-existing managed policies on IG Roles
+	ExternalPolicies *map[string][]string `json:"externalPolicies,omitempty"`
 	// Additional policies to add for roles
 	AdditionalPolicies *map[string]string `json:"additionalPolicies,omitempty"`
 	// A collection of files assets for deployed cluster wide
@@ -139,6 +144,7 @@ type ClusterSpec struct {
 	// EtcdClusters stores the configuration for each cluster
 	EtcdClusters []*EtcdClusterSpec `json:"etcdClusters,omitempty"`
 	// Component configurations
+	Containerd                     *ContainerdConfig             `json:"containerd,omitempty"`
 	Docker                         *DockerConfig                 `json:"docker,omitempty"`
 	KubeDNS                        *KubeDNSConfig                `json:"kubeDNS,omitempty"`
 	KubeAPIServer                  *KubeAPIServerConfig          `json:"kubeAPIServer,omitempty"`
@@ -177,6 +183,12 @@ type ClusterSpec struct {
 	// UseHostCertificates will mount /etc/ssl/certs to inside needed containers.
 	// This is needed if some APIs do have self-signed certs
 	UseHostCertificates *bool `json:"useHostCertificates,omitempty"`
+	// SysctlParameters will configure kernel parameters using sysctl(8). When
+	// specified, each parameter must follow the form variable=value, the way
+	// it would appear in sysctl.conf.
+	SysctlParameters []string `json:"sysctlParameters,omitempty"`
+	// RollingUpdate defines the default rolling-update settings for instance groups
+	RollingUpdate *RollingUpdate `json:"rollingUpdate,omitempty"`
 }
 
 // NodeAuthorizationSpec is used to node authorization
@@ -384,6 +396,16 @@ type KubeDNSConfig struct {
 	CPURequest *resource.Quantity `json:"cpuRequest,omitempty"`
 	// MemoryLimit specifies the memory limit of each dns container in the cluster. Default 170m.
 	MemoryLimit *resource.Quantity `json:"memoryLimit,omitempty"`
+	// NodeLocalDNS specifies the configuration for the node-local-dns addon
+	NodeLocalDNS *NodeLocalDNSConfig `json:"nodeLocalDNS,omitempty"`
+}
+
+// NodeLocalDNSConfig are options of the node-local-dns
+type NodeLocalDNSConfig struct {
+	// Enabled activates the node-local-dns addon
+	Enabled *bool `json:"enabled,omitempty"`
+	// Local listen IP address. It can be any IP in the 169.254.20.0/16 space or any other IP address that can be guaranteed to not collide with any existing IP.
+	LocalIP string `json:"localIP,omitempty"`
 }
 
 // ExternalDNSConfig are options of the dns-controller
@@ -447,6 +469,11 @@ type EtcdBackupSpec struct {
 type EtcdManagerSpec struct {
 	// Image is the etcd manager image to use.
 	Image string `json:"image,omitempty"`
+	// Env allows users to pass in env variables to the etcd-manager container.
+	// Variables starting with ETCD_ will be further passed down to the etcd process.
+	// This allows etcd setting to be configured/overwriten. No config validation is done.
+	// A list of etcd config ENV vars can be found at https://github.com/etcd-io/etcd/blob/master/Documentation/op-guide/configuration.md
+	Env []EnvVar `json:"env,omitempty"`
 }
 
 // EtcdMemberSpec is a specification for a etcd member
@@ -530,6 +557,23 @@ func (t *TerraformSpec) IsEmpty() bool {
 	return t.ProviderExtraConfig == nil
 }
 
+// EnvVar represents an environment variable present in a Container.
+type EnvVar struct {
+	// Name of the environment variable. Must be a C_IDENTIFIER.
+	Name string `json:"name"`
+
+	// Variable references $(VAR_NAME) are expanded
+	// using the previous defined environment variables in the container and
+	// any service environment variables. If a variable cannot be resolved,
+	// the reference in the input string will be unchanged. The $(VAR_NAME)
+	// syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped
+	// references will never be expanded, regardless of whether the variable
+	// exists or not.
+	// Defaults to "".
+	// +optional
+	Value string `json:"value,omitempty"`
+}
+
 type GossipConfig struct {
 	Protocol  *string       `json:"protocol,omitempty"`
 	Listen    *string       `json:"listen,omitempty"`
@@ -543,4 +587,34 @@ type DNSControllerGossipConfig struct {
 	Secret    *string                    `json:"secret,omitempty"`
 	Secondary *DNSControllerGossipConfig `json:"secondary,omitempty"`
 	Seed      *string                    `json:"seed,omitempty"`
+}
+
+type RollingUpdate struct {
+	// MaxUnavailable is the maximum number of nodes that can be unavailable during the update.
+	// The value can be an absolute number (for example 5) or a percentage of desired
+	// nodes (for example 10%).
+	// The absolute number is calculated from a percentage by rounding down.
+	// A value of 0 for both this and MaxSurge disables rolling updates.
+	// Defaults to 1 if MaxSurge is 0, otherwise defaults to 0.
+	// Example: when this is set to 30%, the InstanceGroup can be scaled
+	// down to 70% of desired nodes immediately when the rolling update
+	// starts. Once new nodes are ready, more old nodes can be drained,
+	// ensuring that the total number of nodes available at all times
+	// during the update is at least 70% of desired nodes.
+	// +optional
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+	// MaxSurge is the maximum number of extra nodes that can be created
+	// during the update.
+	// The value can be an absolute number (for example 5) or a percentage of
+	// desired machines (for example 10%).
+	// The absolute number is calculated from a percentage by rounding up.
+	// A value of 0 for both this and MaxUnavailable disables rolling updates.
+	// Has no effect on instance groups with role "Master".
+	// Defaults to 1 on AWS, 0 otherwise.
+	// Example: when this is set to 30%, the InstanceGroup can be scaled
+	// up immediately when the rolling update starts, such that the total
+	// number of old and new nodes do not exceed 130% of desired
+	// nodes.
+	// +optional
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }

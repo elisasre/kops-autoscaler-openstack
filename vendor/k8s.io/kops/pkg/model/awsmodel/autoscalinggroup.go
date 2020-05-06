@@ -97,6 +97,11 @@ func (b *AutoscalingGroupModelBuilder) buildLaunchTemplateTask(c *fi.ModelBuilde
 		return nil, err
 	}
 
+	tags, err := b.CloudTagsForInstanceGroup(ig)
+	if err != nil {
+		return nil, fmt.Errorf("error building cloud tags: %v", err)
+	}
+
 	// @TODO check if there any a better way of doing this .. initially I had a type LaunchTemplate which included
 	// LaunchConfiguration as an anonymous field, bit given up the task dependency walker works this caused issues, due
 	// to the creation of a implicit dependency
@@ -115,6 +120,7 @@ func (b *AutoscalingGroupModelBuilder) buildLaunchTemplateTask(c *fi.ModelBuilde
 		RootVolumeType:         lc.RootVolumeType,
 		SSHKey:                 lc.SSHKey,
 		SecurityGroups:         lc.SecurityGroups,
+		Tags:                   tags,
 		Tenancy:                lc.Tenancy,
 		UserData:               lc.UserData,
 	}
@@ -124,6 +130,9 @@ func (b *AutoscalingGroupModelBuilder) buildLaunchTemplateTask(c *fi.ModelBuilde
 	//   when you configure an Auto Scaling group with a mixed instances policy.
 	if ig.Spec.MixedInstancesPolicy == nil {
 		lt.SpotPrice = lc.SpotPrice
+	}
+	if ig.Spec.SpotDurationInMinutes != nil {
+		lt.SpotDurationInMinutes = ig.Spec.SpotDurationInMinutes
 	}
 	return lt, nil
 }

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
 	"k8s.io/klog"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
@@ -157,7 +157,7 @@ func (_ *Disk) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Disk) error {
 	if a != nil && changes != nil {
 		empty := &Disk{}
 		if !reflect.DeepEqual(empty, changes) {
-			return fmt.Errorf("Cannot apply changes to Disk: %v", changes)
+			return fmt.Errorf("cannot apply changes to Disk: %v", changes)
 		}
 	}
 
@@ -165,11 +165,11 @@ func (_ *Disk) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Disk) error {
 }
 
 type terraformDisk struct {
-	Name       *string           `json:"name"`
-	VolumeType *string           `json:"type"`
-	SizeGB     *int64            `json:"size"`
-	Zone       *string           `json:"zone"`
-	Labels     map[string]string `json:"labels,omitempty"`
+	Name       *string           `json:"name" cty:"name"`
+	VolumeType *string           `json:"type" cty:"type"`
+	SizeGB     *int64            `json:"size" cty:"size"`
+	Zone       *string           `json:"zone" cty:"zone"`
+	Labels     map[string]string `json:"labels,omitempty" cty:"labels"`
 }
 
 func (_ *Disk) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *Disk) error {

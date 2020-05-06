@@ -28,7 +28,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
-	api "k8s.io/kops/pkg/apis/kops"
+	kopsapi "k8s.io/kops/pkg/apis/kops"
 	"k8s.io/kops/pkg/assets"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/assettasks"
@@ -44,7 +44,7 @@ const (
 )
 
 type Loader struct {
-	Cluster *api.Cluster
+	Cluster *kopsapi.Cluster
 
 	WorkDir string
 
@@ -54,8 +54,6 @@ type Loader struct {
 	TemplateFunctions template.FuncMap
 
 	typeMap map[string]reflect.Type
-
-	templates []*template.Template
 
 	Resources map[string]fi.Resource
 
@@ -294,7 +292,7 @@ func (l *Loader) processDeferrals() error {
 									klog.Infof("  %s", k)
 								}
 
-								return fmt.Errorf("Unable to find task %q, referenced from %s:%s", typeNameForTask+"/"+*name, taskKey, path)
+								return fmt.Errorf("unable to find task %q, referenced from %s:%s", typeNameForTask+"/"+*name, taskKey, path)
 							}
 
 							klog.V(11).Infof("Replacing task %q at %s:%s", *name, taskKey, path)
@@ -317,7 +315,7 @@ func (l *Loader) processDeferrals() error {
 								for k := range l.Resources {
 									klog.Infof("  %s", k)
 								}
-								return fmt.Errorf("Unable to find resource %q, referenced from %s:%s", rh.Name, taskKey, path)
+								return fmt.Errorf("unable to find resource %q, referenced from %s:%s", rh.Name, taskKey, path)
 							}
 
 							err := l.populateResource(rh, resource, args)

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
 	"k8s.io/kops/upup/pkg/fi/cloudup/terraform"
@@ -151,13 +151,11 @@ func (_ *InstanceGroupManager) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Ins
 		}
 
 		if changes.TargetSize != nil {
-			request := &compute.InstanceGroupManagersResizeAdvancedRequest{
-				TargetSize: i.TargetSize,
+			newSize := int64(0)
+			if i.TargetSize != 0 {
+				newSize = int64(i.TargetSize)
 			}
-			if i.TargetSize == 0 {
-				request.ForceSendFields = append(request.ForceSendFields, "TargetSize")
-			}
-			op, err := t.Cloud.Compute().InstanceGroupManagers.ResizeAdvanced(t.Cloud.Project(), *e.Zone, i.Name, request).Do()
+			op, err := t.Cloud.Compute().InstanceGroupManagers.Resize(t.Cloud.Project(), *e.Zone, i.Name, newSize).Do()
 			if err != nil {
 				return fmt.Errorf("error resizing InstanceGroupManager: %v", err)
 			}
@@ -179,12 +177,16 @@ func (_ *InstanceGroupManager) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Ins
 }
 
 type terraformInstanceGroupManager struct {
-	Name             *string              `json:"name"`
-	Zone             *string              `json:"zone"`
-	BaseInstanceName *string              `json:"base_instance_name"`
-	InstanceTemplate *terraform.Literal   `json:"instance_template"`
-	TargetSize       *int64               `json:"target_size"`
-	TargetPools      []*terraform.Literal `json:"target_pools,omitempty"`
+	Name             *string              `json:"name" cty:"name"`
+	Zone             *string              `json:"zone" cty:"zone"`
+	BaseInstanceName *string              `json:"base_instance_name" cty:"base_instance_name"`
+	Version          *terraformVersion    `json:"version" cty:"version"`
+	TargetSize       *int64               `json:"target_size" cty:"target_size"`
+	TargetPools      []*terraform.Literal `json:"target_pools,omitempty" cty:"target_pools"`
+}
+
+type terraformVersion struct {
+	InstanceTemplate *terraform.Literal `json:"instance_template" cty:"instance_template"`
 }
 
 func (_ *InstanceGroupManager) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *InstanceGroupManager) error {
@@ -192,8 +194,10 @@ func (_ *InstanceGroupManager) RenderTerraform(t *terraform.TerraformTarget, a, 
 		Name:             e.Name,
 		Zone:             e.Zone,
 		BaseInstanceName: e.BaseInstanceName,
-		InstanceTemplate: e.InstanceTemplate.TerraformLink(),
 		TargetSize:       e.TargetSize,
+	}
+	tf.Version = &terraformVersion{
+		InstanceTemplate: e.InstanceTemplate.TerraformLink(),
 	}
 
 	for _, targetPool := range e.TargetPools {

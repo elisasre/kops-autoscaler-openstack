@@ -19,7 +19,7 @@ package gcetasks
 import (
 	"fmt"
 
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
 	"k8s.io/klog"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
@@ -100,11 +100,11 @@ func (_ *TargetPool) RenderGCE(t *gce.GCEAPITarget, a, e, changes *TargetPool) e
 }
 
 type terraformTargetPool struct {
-	Name            string   `json:"name"`
-	Description     string   `json:"description,omitempty"`
-	HealthChecks    []string `json:"health_checks,omitempty"`
-	Instances       []string `json:"instances,omitempty"`
-	SessionAffinity string   `json:"session_affinity,omitempty"`
+	Name            string   `json:"name" cty:"name"`
+	Description     string   `json:"description,omitempty" cty:"description"`
+	HealthChecks    []string `json:"health_checks,omitempty" cty:"health_checks"`
+	Instances       []string `json:"instances,omitempty" cty:"instances"`
+	SessionAffinity string   `json:"session_affinity,omitempty" cty:"session_affinity"`
 }
 
 func (_ *TargetPool) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *TargetPool) error {

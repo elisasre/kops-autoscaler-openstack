@@ -28,8 +28,6 @@ const (
 	LabelClusterName = "kops.k8s.io/cluster"
 	// NodeLabelInstanceGroup is a node label set to the name of the instance group
 	NodeLabelInstanceGroup = "kops.k8s.io/instancegroup"
-	// Deprecated - use the new labels & taints node-role.kubernetes.io/master and node-role.kubernetes.io/node
-	TaintNoScheduleMaster15 = "dedicated=master:NoSchedule"
 )
 
 // +genclient
@@ -123,6 +121,8 @@ type InstanceGroupSpec struct {
 	Hooks []HookSpec `json:"hooks,omitempty"`
 	// MaxPrice indicates this is a spot-pricing group, with the specified value as our max-price bid
 	MaxPrice *string `json:"maxPrice,omitempty"`
+	// SpotDurationInMinutes reserves a spot block for the period specified
+	SpotDurationInMinutes *int64 `json:"spotDurationInMinutes,omitempty"`
 	// AssociatePublicIP is true if we want instances to have a public IP
 	AssociatePublicIP *bool `json:"associatePublicIp,omitempty"`
 	// AdditionalSecurityGroups attaches additional security groups (e.g. i-123456)
@@ -155,6 +155,12 @@ type InstanceGroupSpec struct {
 	SecurityGroupOverride *string `json:"securityGroupOverride,omitempty"`
 	// InstanceProtection makes new instances in an autoscaling group protected from scale in
 	InstanceProtection *bool `json:"instanceProtection,omitempty"`
+	// SysctlParameters will configure kernel parameters using sysctl(8). When
+	// specified, each parameter must follow the form variable=value, the way
+	// it would appear in sysctl.conf.
+	SysctlParameters []string `json:"sysctlParameters,omitempty"`
+	// RollingUpdate defines the rolling-update behavior
+	RollingUpdate *RollingUpdate `json:"rollingUpdate,omitempty"`
 }
 
 const (
@@ -169,7 +175,7 @@ const (
 // SpotAllocationStrategies is a collection of supported strategies
 var SpotAllocationStrategies = []string{SpotAllocationStrategyLowestPrices, SpotAllocationStrategyDiversified, SpotAllocationStrategyCapacityOptimized}
 
-// MixedInstancesPolicySpec defines the specification for an autoscaling backed by a ec2 fleet
+// MixedInstancesPolicySpec defines the specification for an autoscaling group backed by a ec2 fleet
 type MixedInstancesPolicySpec struct {
 	// Instances is a list of instance types which we are willing to run in the EC2 fleet
 	Instances []string `json:"instances,omitempty"`

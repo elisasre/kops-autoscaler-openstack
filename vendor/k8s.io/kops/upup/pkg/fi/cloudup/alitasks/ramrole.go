@@ -18,7 +18,9 @@ package alitasks
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ram"
 
 	"k8s.io/klog"
@@ -30,49 +32,60 @@ import (
 //go:generate fitask -type=RAMRole
 
 type RAMRole struct {
+	ID                       *string
 	Lifecycle                *fi.Lifecycle
 	Name                     *string
 	AssumeRolePolicyDocument *string
-	RAMRoleId                *string
 }
 
 var _ fi.CompareWithID = &RAMRole{}
 
 func (r *RAMRole) CompareWithID() *string {
-	return r.Name
+	return r.ID
+}
+
+func compactPolicy(s string) string {
+	removedStrings := []string{"\n", "<br>", " ", "\r\n"}
+	for _, each := range removedStrings {
+		s = strings.Replace(s, each, "", -1)
+	}
+	return s
 }
 
 func (r *RAMRole) Find(c *fi.Context) (*RAMRole, error) {
 	cloud := c.Cloud.(aliup.ALICloud)
 
-	roleList, err := cloud.RamClient().ListRoles()
-	if err != nil {
-		return nil, fmt.Errorf("error listing RamRoles: %v", err)
+	request := ram.RoleQueryRequest{
+		RoleName: fi.StringValue(r.Name),
 	}
 
-	// Don't exist RAMrole with specified User.
-	if len(roleList.Roles.Role) == 0 {
+	roleResp, err := cloud.RamClient().GetRole(request)
+	if err != nil {
+		if e, ok := err.(*common.Error); ok && e.StatusCode == 404 {
+			klog.V(2).Infof("no RamRole with name: %q", *r.Name)
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error get RamRole %q: %v", *r.Name, err)
+	}
+
+	role := roleResp.Role
+	if role.RoleId == "" {
+		klog.V(2).Infof("no RamRole with name: %q", *r.Name)
 		return nil, nil
 	}
 
-	// The same user's RAM resource name can not be repeated
-	for _, role := range roleList.Roles.Role {
-		if role.RoleName == fi.StringValue(r.Name) {
-
-			klog.V(2).Infof("found matching RamRole with name: %q", *r.Name)
-			actual := &RAMRole{}
-			actual.Name = fi.String(role.RoleName)
-			actual.RAMRoleId = fi.String(role.RoleId)
-			actual.AssumeRolePolicyDocument = fi.String(role.AssumeRolePolicyDocument)
-
-			// Ignore "system" fields
-			actual.Lifecycle = r.Lifecycle
-			r.RAMRoleId = actual.RAMRoleId
-			return actual, nil
-		}
+	klog.V(2).Infof("found matching RamRole with name: %q", *r.Name)
+	actual := &RAMRole{
+		Name:                     fi.String(role.RoleName),
+		ID:                       fi.String(role.RoleId),
+		AssumeRolePolicyDocument: fi.String(compactPolicy(role.AssumeRolePolicyDocument)),
 	}
 
-	return nil, nil
+	// Ignore "system" fields
+	actual.Lifecycle = r.Lifecycle
+	r.ID = actual.ID
+
+	return actual, nil
 }
 
 func (r *RAMRole) Run(c *fi.Context) error {
@@ -105,15 +118,15 @@ func (_ *RAMRole) RenderALI(t *aliup.ALIAPITarget, a, e, changes *RAMRole) error
 			return fmt.Errorf("error creating RAMRole: %v", err)
 		}
 
-		e.RAMRoleId = fi.String(roleResponse.Role.RoleId)
+		e.ID = fi.String(roleResponse.Role.RoleId)
 	}
 
 	return nil
 }
 
 type terraformRAMRole struct {
-	Name     *string `json:"name,omitempty"`
-	Document *string `json:"document,omitempty"`
+	Name     *string `json:"name,omitempty" cty:"name"`
+	Document *string `json:"document,omitempty" cty:"document"`
 }
 
 func (_ *RAMRole) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *RAMRole) error {

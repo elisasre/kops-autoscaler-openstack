@@ -22,7 +22,6 @@ import (
 
 	"github.com/blang/semver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"k8s.io/kops/pkg/apis/kops/util"
 	"k8s.io/kops/util/pkg/vfs"
@@ -32,12 +31,11 @@ var DefaultChannelBase = "https://raw.githubusercontent.com/kubernetes/kops/mast
 
 const (
 	DefaultChannel = "stable"
-	AlphaChannel   = "alpha"
 )
 
 type Channel struct {
-	v1.TypeMeta `json:",inline"`
-	ObjectMeta  metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta `json:",inline"`
+	ObjectMeta      metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ChannelSpec `json:"spec,omitempty"`
 }

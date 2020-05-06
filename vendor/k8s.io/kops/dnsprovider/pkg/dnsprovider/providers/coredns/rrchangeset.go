@@ -17,13 +17,13 @@ limitations under the License.
 package coredns
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
 
 	etcdc "github.com/coreos/etcd/client"
 	dnsmsg "github.com/miekg/coredns/middleware/etcd/msg"
-	"golang.org/x/net/context"
 	"k8s.io/kops/dnsprovider/pkg/dnsprovider"
 )
 
@@ -97,7 +97,7 @@ func (c *ResourceRecordChangeset) Apply() error {
 				if checkNotExists {
 					response, err := c.zone.zones.intf.etcdKeysAPI.Get(ctx, dnsmsg.Path(recordKey, etcdPathPrefix), getOpts)
 					if err == nil && response != nil {
-						return fmt.Errorf("Key already exist, key: %v", recordKey)
+						return fmt.Errorf("key already exist, key: %v", recordKey)
 					}
 				}
 

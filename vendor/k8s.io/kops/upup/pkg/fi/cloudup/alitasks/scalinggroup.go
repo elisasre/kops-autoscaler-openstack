@@ -73,19 +73,22 @@ func (s *ScalingGroup) Find(c *fi.Context) (*ScalingGroup, error) {
 
 	klog.V(2).Infof("found matching ScalingGroup with Name: %q", *s.Name)
 
-	actual := &ScalingGroup{}
-	actual.Name = fi.String(groupList[0].ScalingGroupName)
-	actual.MinSize = fi.Int(groupList[0].MinSize)
-	actual.MaxSize = fi.Int(groupList[0].MaxSize)
-	actual.ScalingGroupId = fi.String(groupList[0].ScalingGroupId)
-	actual.Active = fi.Bool(groupList[0].LifecycleState == ess.Active)
+	sg := groupList[0]
 
-	actual.LoadBalancer = &LoadBalancer{
-		LoadbalancerId: fi.String(groupList[0].LoadBalancerId),
+	actual := &ScalingGroup{
+		Name:           fi.String(sg.ScalingGroupName),
+		MinSize:        fi.Int(sg.MinSize),
+		MaxSize:        fi.Int(sg.MaxSize),
+		ScalingGroupId: fi.String(sg.ScalingGroupId),
+		Active:         fi.Bool(sg.LifecycleState == ess.Active),
 	}
 
-	if len(groupList[0].VSwitchIds.VSwitchId) != 0 {
-		for _, vswitch := range groupList[0].VSwitchIds.VSwitchId {
+	if s.LoadBalancer != nil {
+		actual.LoadBalancer = &LoadBalancer{LoadbalancerId: s.LoadBalancer.LoadbalancerId}
+	}
+
+	if len(sg.VSwitchIds.VSwitchId) != 0 {
+		for _, vswitch := range sg.VSwitchIds.VSwitchId {
 			v := &VSwitch{
 				VSwitchId: fi.String(vswitch),
 			}
@@ -98,7 +101,6 @@ func (s *ScalingGroup) Find(c *fi.Context) (*ScalingGroup, error) {
 	s.Active = actual.Active
 	actual.Lifecycle = s.Lifecycle
 	return actual, nil
-
 }
 
 func (a *ScalingGroup) Run(c *fi.Context) error {
@@ -137,6 +139,7 @@ func (_ *ScalingGroup) RenderALI(t *aliup.ALIAPITarget, a, e, changes *ScalingGr
 			RegionId:         common.Region(t.Cloud.Region()),
 			MinSize:          e.MinSize,
 			MaxSize:          e.MaxSize,
+			MultiAZPolicy:    ess.MultiAZPolicyBalance,
 			VSwitchIds:       vswitchs,
 		}
 
@@ -175,12 +178,12 @@ func (_ *ScalingGroup) RenderALI(t *aliup.ALIAPITarget, a, e, changes *ScalingGr
 }
 
 type terraformScalingGroup struct {
-	Name    *string `json:"scaling_group_name,omitempty"`
-	MaxSize *int    `json:"max_size,omitempty"`
-	MinSize *int    `json:"min_size,omitempty"`
+	Name    *string `json:"scaling_group_name,omitempty" cty:"scaling_group_name"`
+	MaxSize *int    `json:"max_size,omitempty" cty:"max_size"`
+	MinSize *int    `json:"min_size,omitempty" cty:"min_size"`
 
-	VSwitchs     []*terraform.Literal `json:"vswitch_ids,omitempty"`
-	LoadBalancer []*terraform.Literal `json:"loadbalancer_ids,omitempty"`
+	VSwitchs     []*terraform.Literal `json:"vswitch_ids,omitempty" cty:"vswitch_ids"`
+	LoadBalancer []*terraform.Literal `json:"loadbalancer_ids,omitempty" cty:"loadbalancer_ids"`
 }
 
 func (_ *ScalingGroup) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *ScalingGroup) error {

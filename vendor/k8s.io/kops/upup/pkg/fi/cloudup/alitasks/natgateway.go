@@ -67,13 +67,16 @@ func (e *NatGateway) Find(c *fi.Context) (*NatGateway, error) {
 	if len(natGateways) != 1 {
 		return nil, fmt.Errorf("found multiple NatGateways for %q", fi.StringValue(e.ID))
 	}
+	natGateway := natGateways[0]
+
 	actual := &NatGateway{}
-	actual.ID = fi.String(natGateways[0].NatGatewayId)
+	actual.ID = fi.String(natGateway.NatGatewayId)
 
 	// Ignore "system" fields
 	actual.Lifecycle = e.Lifecycle
 	actual.Name = e.Name
 	actual.Region = e.Region
+	actual.VPC = &VPC{ID: &natGateway.VpcId}
 
 	e.ID = actual.ID
 	klog.V(4).Infof("found matching NatGateway %v", actual)
@@ -111,8 +114,8 @@ func (_ *NatGateway) RenderALI(t *aliup.ALIAPITarget, a, e, changes *NatGateway)
 }
 
 type terraformNatGateway struct {
-	Name  *string            `json:"name,omitempty"`
-	VpcId *terraform.Literal `json:"vpc_id,omitempty"`
+	Name  *string            `json:"name,omitempty" cty:"name"`
+	VpcId *terraform.Literal `json:"vpc_id,omitempty" cty:"vpc_id"`
 }
 
 func (_ *NatGateway) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *NatGateway) error {

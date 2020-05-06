@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/digitalocean/godo"
 	"golang.org/x/oauth2"
@@ -53,8 +54,8 @@ type Cloud struct {
 
 	dns dnsprovider.Interface
 
-	Region string
-	tags   map[string]string
+	// RegionName holds the region, renamed to avoid conflict with Region()
+	RegionName string
 }
 
 var _ fi.Cloud = &Cloud{}
@@ -75,9 +76,9 @@ func NewCloud(region string) (*Cloud, error) {
 	client := godo.NewClient(oauthClient)
 
 	return &Cloud{
-		Client: client,
-		dns:    dns.NewProvider(client),
-		Region: region,
+		Client:     client,
+		dns:        dns.NewProvider(client),
+		RegionName: region,
 	}, nil
 }
 
@@ -99,9 +100,20 @@ func (c *Cloud) DeleteInstance(i *cloudinstances.CloudInstanceGroupMember) error
 	return fmt.Errorf("digital ocean cloud provider does not support deleting cloud instances at this time")
 }
 
+// DetachInstance is not implemented yet. It needs to cause a cloud instance to no longer be counted against the group's size limits.
+func (c *Cloud) DetachInstance(i *cloudinstances.CloudInstanceGroupMember) error {
+	klog.V(8).Info("digitalocean cloud provider DetachInstance not implemented yet")
+	return fmt.Errorf("digital ocean cloud provider does not support surging")
+}
+
 // ProviderID returns the kops api identifier for DigitalOcean cloud provider
 func (c *Cloud) ProviderID() kops.CloudProviderID {
 	return kops.CloudProviderDO
+}
+
+// Region returns the DO region we will target
+func (c *Cloud) Region() string {
+	return c.RegionName
 }
 
 // DNS returns a DO implementation for dnsprovider.Interface
@@ -123,7 +135,43 @@ func (c *Cloud) Droplets() godo.DropletsService {
 	return c.Client.Droplets
 }
 
+func (c *Cloud) LoadBalancers() godo.LoadBalancersService {
+	return c.Client.LoadBalancers
+}
+
 // FindVPCInfo is not implemented, it's only here to satisfy the fi.Cloud interface
 func (c *Cloud) FindVPCInfo(id string) (*fi.VPCInfo, error) {
 	return nil, errors.New("not implemented")
+}
+
+func (c *Cloud) GetApiIngressStatus(cluster *kops.Cluster) ([]kops.ApiIngressStatus, error) {
+	var ingresses []kops.ApiIngressStatus
+	if cluster.Spec.MasterPublicName != "" {
+		// Note that this must match Digital Ocean's lb name
+		klog.V(2).Infof("Querying DO to find Loadbalancers for API (%q)", cluster.Name)
+
+		loadBalancers, err := getAllLoadBalancers(c)
+		if err != nil {
+			return nil, fmt.Errorf("LoadBalancers.List returned error: %v", err)
+		}
+
+		lbName := "api-" + strings.Replace(cluster.Name, ".", "-", -1)
+
+		for _, lb := range loadBalancers {
+			if lb.Name == lbName {
+				klog.V(10).Infof("Matching LB name found for API (%q)", cluster.Name)
+
+				if lb.Status != "active" {
+					return nil, fmt.Errorf("load-balancer is not yet active (current status: %s)", lb.Status)
+				}
+
+				address := lb.IP
+				ingresses = append(ingresses, kops.ApiIngressStatus{IP: address})
+
+				return ingresses, nil
+			}
+		}
+	}
+
+	return nil, nil
 }

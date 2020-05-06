@@ -17,13 +17,13 @@ limitations under the License.
 package gce
 
 import (
+	"context"
 	"encoding/base32"
 	"fmt"
 	"hash/fnv"
 	"strings"
 
-	context "golang.org/x/net/context"
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
 	"k8s.io/kops/pkg/apis/kops"
@@ -59,6 +59,18 @@ func (c *gceCloudImplementation) DeleteInstance(i *cloudinstances.CloudInstanceG
 // DeleteInstance deletes a GCE instance
 func (c *mockGCECloud) DeleteInstance(i *cloudinstances.CloudInstanceGroupMember) error {
 	return recreateCloudInstanceGroupMember(c, i)
+}
+
+// DetachInstance is not implemented yet. It needs to cause a cloud instance to no longer be counted against the group's size limits.
+func (c *gceCloudImplementation) DetachInstance(i *cloudinstances.CloudInstanceGroupMember) error {
+	klog.V(8).Info("gce cloud provider DetachInstance not implemented yet")
+	return fmt.Errorf("gce cloud provider does not support surging")
+}
+
+// DetachInstance is not implemented yet. It needs to cause a cloud instance to no longer be counted against the group's size limits.
+func (c *mockGCECloud) DetachInstance(i *cloudinstances.CloudInstanceGroupMember) error {
+	klog.V(8).Info("gce cloud provider DetachInstance not implemented yet")
+	return fmt.Errorf("gce cloud provider does not support surging")
 }
 
 // recreateCloudInstanceGroupMember recreates the specified instances, managed by an InstanceGroupManager
