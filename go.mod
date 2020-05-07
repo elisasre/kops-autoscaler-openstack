@@ -46,7 +46,7 @@ replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.18.2
 
 replace k8s.io/kubectl => k8s.io/kubectl v0.18.2
 
-replace k8s.io/kops => k8s.io/kops v1.18.0-alpha.3
+replace k8s.io/kops => k8s.io/kops v1.18.0-alpha.3.0.20200507093910-3df14f2bea12
 
 require (
 	cloud.google.com/go v0.45.1 // indirect
