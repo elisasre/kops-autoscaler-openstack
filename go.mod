@@ -8,7 +8,7 @@ replace k8s.io/api => k8s.io/api v0.18.2
 
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.18.2
 
-replace k8s.io/client-go => k8s.io/client-go v0.0.0-20200429082053-573f9163af85
+replace k8s.io/client-go => k8s.io/client-go v0.18.2
 
 replace k8s.io/cloud-provider => k8s.io/cloud-provider v0.18.2
 
@@ -45,8 +45,6 @@ replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.18.2
 replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.18.2
 
 replace k8s.io/kubectl => k8s.io/kubectl v0.18.2
-
-replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200331211104-d77ed8bd41b6
 
 replace k8s.io/kops => k8s.io/kops v1.18.0-alpha.3
 
