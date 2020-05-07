@@ -127,7 +127,7 @@ func WellKnownServiceIP(clusterSpec *kops.ClusterSpec, id int) (net.IP, error) {
 		return serviceIP, nil
 	}
 
-	return nil, fmt.Errorf("Unexpected IP address type for ServiceClusterIPRange: %s", clusterSpec.ServiceClusterIPRange)
+	return nil, fmt.Errorf("unexpected IP address type for ServiceClusterIPRange: %s", clusterSpec.ServiceClusterIPRange)
 }
 
 func IsBaseURL(kubernetesVersion string) bool {
@@ -138,11 +138,6 @@ func IsBaseURL(kubernetesVersion string) bool {
 func Image(component string, architecture string, clusterSpec *kops.ClusterSpec, assetsBuilder *assets.AssetBuilder) (string, error) {
 	if assetsBuilder == nil {
 		return "", fmt.Errorf("unable to parse assets as assetBuilder is not defined")
-	}
-	// TODO remove this, as it is an addon now
-	if component == "kube-dns" {
-		// TODO: Once we are shipping different versions, start to use them
-		return "k8s.gcr.io/kubedns-amd64:1.3", nil
 	}
 
 	kubernetesVersion, err := k8sversion.Parse(clusterSpec.KubernetesVersion)
@@ -182,7 +177,6 @@ func Image(component string, architecture string, clusterSpec *kops.ClusterSpec,
 	baseURL := clusterSpec.KubernetesVersion
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
-	// TODO path.Join here?
 	tagURL := baseURL + "/bin/linux/" + architecture + "/" + component + ".docker_tag"
 	klog.V(2).Infof("Downloading docker tag for %s from: %s", component, tagURL)
 

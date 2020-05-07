@@ -68,10 +68,12 @@ go_test(
     size = "small",
     srcs = [
         "dryruntarget_test.go",
+        "files_test.go",
         "vfs_castore_test.go",
     ],
     embed = [":go_default_library"],
     deps = [
+        "//pkg/apis/kops:go_default_library",
         "//pkg/pki:go_default_library",
         "//util/pkg/vfs:go_default_library",
     ],

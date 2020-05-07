@@ -1,21 +1,15 @@
 OPERATOR_NAME := kops-autoscaler-openstack
 IMAGE := elisaoyj/$(OPERATOR_NAME)
 
-.PHONY: copybindata bindata clean deps test gofmt ensure check build build-image build-linux-amd64 run
-
-copybindata:
-	cp ${GOPATH}/src/k8s.io/kops/upup/models/bindata.go .replace/bindata/bindata.go
+.PHONY: clean deps test gofmt ensure check build build-image build-linux-amd64 run
 
 clean:
 	git clean -Xdf
 
-bindata:
-	cp .replace/bindata/bindata.go vendor/k8s.io/kops/upup/models
-
 deps:
 	GO111MODULE=off go get -u golang.org/x/lint/golint
 
-test: bindata
+test:
 	GO111MODULE=on go test ./... -mod vendor -v -coverprofile=gotest-coverage.out > gotest-report.out && cat gotest-report.out || (cat gotest-report.out; exit 1)
 	GO111MODULE=on golint -set_exit_status cmd/... pkg/... > golint-report.out && cat golint-report.out || (cat golint-report.out; exit 1)
 	GO111MODULE=on go vet -mod vendor ./...
@@ -28,14 +22,12 @@ gofmt:
 ensure:
 	GO111MODULE=on go mod tidy
 	GO111MODULE=on go mod vendor
-	cp .replace/bindata/bindata.go vendor/k8s.io/kops/upup/models
-	cp .replace/env/standard.go vendor/k8s.io/kops/util/pkg/env/standard.go
 
-build-linux-amd64: bindata
+build-linux-amd64:
 	rm -f bin/linux/$(OPERATOR_NAME)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=on go build -mod vendor -v -i -o bin/linux/$(OPERATOR_NAME) ./cmd
 
-build: bindata
+build:
 	rm -f bin/$(OPERATOR_NAME)
 	GO111MODULE=on go build -mod vendor -v -i -o bin/$(OPERATOR_NAME) ./cmd
 

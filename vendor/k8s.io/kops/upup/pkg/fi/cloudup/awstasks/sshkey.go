@@ -166,8 +166,8 @@ func (_ *SSHKey) RenderAWS(t *awsup.AWSAPITarget, a, e, changes *SSHKey) error {
 }
 
 type terraformSSHKey struct {
-	Name      *string            `json:"key_name"`
-	PublicKey *terraform.Literal `json:"public_key"`
+	Name      *string            `json:"key_name" cty:"key_name"`
+	PublicKey *terraform.Literal `json:"public_key" cty:"public_key"`
 }
 
 func (_ *SSHKey) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *SSHKey) error {
@@ -215,12 +215,12 @@ func (_ *SSHKey) RenderCloudformation(t *cloudformation.CloudformationTarget, a,
 
 	klog.Warningf("Cloudformation does not manage SSH keys; pre-creating SSH key")
 
-	a, err := e.find(cloud)
+	keypair, err := e.find(cloud)
 	if err != nil {
 		return err
 	}
 
-	if a == nil {
+	if keypair == nil {
 		err := e.createKeypair(cloud)
 		if err != nil {
 			return err

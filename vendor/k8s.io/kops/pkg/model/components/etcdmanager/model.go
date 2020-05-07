@@ -138,6 +138,15 @@ func (b *EtcdManagerBuilder) Build(c *fi.ModelBuilderContext) error {
 		}); err != nil {
 			return err
 		}
+
+		if etcdCluster.Name == "cilium" {
+			c.AddTask(&fitasks.Keypair{
+				Name:    fi.String("etcd-clients-ca-cilium"),
+				Subject: "cn=etcd-clients-ca-cilium",
+				Type:    "ca",
+				Format:  format,
+			})
+		}
 	}
 
 	return nil
@@ -190,7 +199,7 @@ metadata:
   namespace: kube-system
 spec:
   containers:
-  - image: kopeio/etcd-manager:3.0.20200116
+  - image: kopeio/etcd-manager:3.0.20200429
     name: etcd-manager
     resources:
       requests:
@@ -203,9 +212,6 @@ spec:
     # TODO: Would be nice to scope this more tightly, but needed for volume mounting
     - mountPath: /rootfs
       name: rootfs
-    # We write artificial hostnames into etc hosts for the etcd nodes, so they have stable names
-    - mountPath: /etc/hosts
-      name: hosts
     - mountPath: /etc/kubernetes/pki/etcd-manager
       name: pki
   hostNetwork: true
@@ -215,10 +221,6 @@ spec:
       path: /
       type: Directory
     name: rootfs
-  - hostPath:
-      path: /etc/hosts
-      type: File
-    name: hosts
   - hostPath:
       path: /etc/kubernetes/pki/etcd-manager
       type: DirectoryOrCreate
@@ -259,6 +261,19 @@ func (b *EtcdManagerBuilder) buildPod(etcdCluster *kops.EtcdClusterSpec) (*v1.Po
 			klog.Warningf("overloading image in manifest %s with images %s", bundle, etcdCluster.Manager.Image)
 			container.Image = etcdCluster.Manager.Image
 		}
+
+	}
+
+	// With etcd-manager the hosts changes are self-contained, so
+	// we don't need to share /etc/hosts.  By not sharing we avoid
+	// (1) the temptation to address etcd directly and (2)
+	// problems of concurrent updates to /etc/hosts being hard
+	// from within a container (because locking is very difficult
+	// across bind mounts).
+	//
+	// Introduced with 1.17 to avoid changing existing versions.
+	if b.IsKubernetesLT("1.17") {
+		kubemanifest.MapEtcHosts(pod, container, false)
 	}
 
 	// Remap image via AssetBuilder
@@ -272,6 +287,7 @@ func (b *EtcdManagerBuilder) buildPod(etcdCluster *kops.EtcdClusterSpec) (*v1.Po
 
 	etcdInsecure := !b.UseEtcdTLS()
 
+	clientHost := "__name__"
 	clientPort := 4001
 
 	clusterName := "etcd-" + etcdCluster.Name
@@ -314,7 +330,12 @@ func (b *EtcdManagerBuilder) buildPod(etcdCluster *kops.EtcdClusterSpec) (*v1.Po
 		peerPort = 2381
 		grpcPort = wellknownports.EtcdEventsGRPC
 		quarantinedClientPort = wellknownports.EtcdEventsQuarantinedClientPort
-
+	case "cilium":
+		clientPort = 4003
+		peerPort = 2382
+		grpcPort = wellknownports.EtcdCiliumGRPC
+		quarantinedClientPort = wellknownports.EtcdCiliumQuarantinedClientPort
+		clientHost = b.Cluster.Spec.MasterInternalName
 	default:
 		return nil, fmt.Errorf("unknown etcd cluster key %q", etcdCluster.Name)
 	}
@@ -345,7 +366,7 @@ func (b *EtcdManagerBuilder) buildPod(etcdCluster *kops.EtcdClusterSpec) (*v1.Po
 		scheme := "https"
 
 		config.PeerUrls = fmt.Sprintf("%s://__name__:%d", scheme, peerPort)
-		config.ClientUrls = fmt.Sprintf("%s://__name__:%d", scheme, clientPort)
+		config.ClientUrls = fmt.Sprintf("%s://%s:%d", scheme, clientHost, clientPort)
 		config.QuarantineClientUrls = fmt.Sprintf("%s://__name__:%d", scheme, quarantinedClientPort)
 
 		// TODO: We need to wire these into the etcd-manager spec
@@ -482,6 +503,18 @@ func (b *EtcdManagerBuilder) buildPod(etcdCluster *kops.EtcdClusterSpec) (*v1.Po
 	envMap := env.BuildSystemComponentEnvVars(&b.Cluster.Spec)
 
 	container.Env = envMap.ToEnvVars()
+
+	if etcdCluster.Manager != nil && len(etcdCluster.Manager.Env) > 0 {
+		for _, envVar := range etcdCluster.Manager.Env {
+			klog.Warningf("overloading ENV var in manifest %s with %s=%s", bundle, envVar.Name, envVar.Value)
+			configOverwrite := v1.EnvVar{
+				Name:  envVar.Name,
+				Value: envVar.Value,
+			}
+
+			container.Env = append(container.Env, configOverwrite)
+		}
+	}
 
 	{
 		foundPKI := false

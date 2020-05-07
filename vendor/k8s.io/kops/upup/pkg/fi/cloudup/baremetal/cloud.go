@@ -42,6 +42,10 @@ func (c *Cloud) ProviderID() kops.CloudProviderID {
 	return kops.CloudProviderBareMetal
 }
 
+func (c *Cloud) Region() string {
+	return ""
+}
+
 func (c *Cloud) DNS() (dnsprovider.Interface, error) {
 	return c.dns, nil
 }
@@ -62,6 +66,13 @@ func (c *Cloud) GetCloudGroups(cluster *kops.Cluster, instancegroups []*kops.Ins
 func (c *Cloud) DeleteGroup(g *cloudinstances.CloudInstanceGroup) error {
 	klog.V(8).Infof("baremetal cloud provider DeleteGroup not implemented yet")
 	return fmt.Errorf("baremetal cloud provider does not support deleting cloud groups at this time")
+}
+
+// DetachInstance is not implemented yet. It needs to cause a cloud instance to no longer be counted against the group's size limits.
+// Baremetal may not support this.
+func (c *Cloud) DetachInstance(i *cloudinstances.CloudInstanceGroupMember) error {
+	klog.V(8).Infof("baremetal cloud provider DetachInstance not implemented")
+	return fmt.Errorf("baremetal cloud provider does not support surging")
 }
 
 //DeleteInstance is not implemented yet, is func needs to delete a DO instance.

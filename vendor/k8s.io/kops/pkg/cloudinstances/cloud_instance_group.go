@@ -22,15 +22,14 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
-	"k8s.io/kops/pkg/apis/kops"
-	api "k8s.io/kops/pkg/apis/kops"
+	kopsapi "k8s.io/kops/pkg/apis/kops"
 )
 
 // CloudInstanceGroup is the cloud backing of InstanceGroup.
 type CloudInstanceGroup struct {
 	// HumanName is a user-friendly name for the group
 	HumanName     string
-	InstanceGroup *api.InstanceGroup
+	InstanceGroup *kopsapi.InstanceGroup
 	Ready         []*CloudInstanceGroupMember
 	NeedUpdate    []*CloudInstanceGroupMember
 	MinSize       int
@@ -48,6 +47,8 @@ type CloudInstanceGroupMember struct {
 	Node *v1.Node
 	// CloudInstanceGroup is the managing CloudInstanceGroup
 	CloudInstanceGroup *CloudInstanceGroup
+	// Detached is whether fi.Cloud.DetachInstance has been successfully called on the instance.
+	Detached bool
 }
 
 // NewCloudInstanceGroupMember creates a new CloudInstanceGroupMember
@@ -75,6 +76,28 @@ func (c *CloudInstanceGroup) NewCloudInstanceGroupMember(instanceId string, newG
 	return nil
 }
 
+// NewDetachedCloudInstanceGroupMember creates a new CloudInstanceGroupMember for a detached instance
+func (c *CloudInstanceGroup) NewDetachedCloudInstanceGroupMember(instanceId string, nodeMap map[string]*v1.Node) error {
+	if instanceId == "" {
+		return fmt.Errorf("instance id for cloud instance member cannot be empty")
+	}
+	cm := &CloudInstanceGroupMember{
+		ID:                 instanceId,
+		CloudInstanceGroup: c,
+		Detached:           true,
+	}
+	node := nodeMap[instanceId]
+	if node != nil {
+		cm.Node = node
+	} else {
+		klog.V(8).Infof("unable to find node for instance: %s", instanceId)
+	}
+
+	c.NeedUpdate = append(c.NeedUpdate, cm)
+
+	return nil
+}
+
 // Status returns a human-readable Status indicating whether an update is needed
 func (c *CloudInstanceGroup) Status() string {
 	if len(c.NeedUpdate) == 0 {
@@ -84,12 +107,12 @@ func (c *CloudInstanceGroup) Status() string {
 }
 
 // GetNodeMap returns a list of nodes keyed by their external id
-func GetNodeMap(nodes []v1.Node, cluster *kops.Cluster) map[string]*v1.Node {
+func GetNodeMap(nodes []v1.Node, cluster *kopsapi.Cluster) map[string]*v1.Node {
 	nodeMap := make(map[string]*v1.Node)
 	delimiter := "/"
 	// Alicloud CCM uses the "{region}.{instance-id}" of a instance as ProviderID.
 	// We need to set delimiter to "." for Alicloud.
-	if kops.CloudProviderID(cluster.Spec.CloudProvider) == kops.CloudProviderALI {
+	if kopsapi.CloudProviderID(cluster.Spec.CloudProvider) == kopsapi.CloudProviderALI {
 		delimiter = "."
 	}
 

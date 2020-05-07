@@ -19,7 +19,7 @@ package gcetasks
 import (
 	"fmt"
 
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
 	"k8s.io/klog"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
@@ -131,18 +131,18 @@ func (_ *ForwardingRule) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Forwardin
 		}
 
 	} else {
-		return fmt.Errorf("Cannot apply changes to ForwardingRule: %v", changes)
+		return fmt.Errorf("cannot apply changes to ForwardingRule: %v", changes)
 	}
 
 	return nil
 }
 
 type terraformForwardingRule struct {
-	Name       string             `json:"name"`
-	PortRange  string             `json:"port_range,omitempty"`
-	Target     *terraform.Literal `json:"target,omitempty"`
-	IPAddress  *terraform.Literal `json:"ip_address,omitempty"`
-	IPProtocol string             `json:"ip_protocol,omitempty"`
+	Name       string             `json:"name" cty:"name"`
+	PortRange  string             `json:"port_range,omitempty" cty:"port_range"`
+	Target     *terraform.Literal `json:"target,omitempty" cty:"target"`
+	IPAddress  *terraform.Literal `json:"ip_address,omitempty" cty:"ip_address"`
+	IPProtocol string             `json:"ip_protocol,omitempty" cty:"ip_protocol"`
 }
 
 func (_ *ForwardingRule) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *ForwardingRule) error {

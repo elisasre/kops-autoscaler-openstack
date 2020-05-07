@@ -17,17 +17,15 @@ limitations under the License.
 package stubs
 
 // Implementation of internal/interfaces/* on top of Google Cloud DNS API.
-// See https://godoc.org/google.golang.org/api/dns/v1 for details
+// See https://pkg.go.dev/google.golang.org/api/dns/v1 for details
 // This facilitates stubbing out Google Cloud DNS for unit testing.
 // Only the parts of the API that we use are included.
 // Others can be added as needed.
 
-import dns "google.golang.org/api/dns/v1"
-
 type (
 	// TODO: We don't need these yet, so they remain unimplemented.  Add later as required.
-	Project         struct{ impl *dns.Project }
-	ProjectsGetCall struct{ impl *dns.ProjectsGetCall }
-	ProjectsService struct{ impl *dns.ProjectsService }
-	Quota           struct{ impl *dns.Quota }
+	Project         struct{}
+	ProjectsGetCall struct{}
+	ProjectsService struct{}
+	Quota           struct{}
 )

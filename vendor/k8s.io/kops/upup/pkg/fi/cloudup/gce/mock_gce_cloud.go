@@ -19,7 +19,8 @@ package gce
 import (
 	"fmt"
 
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/storage/v1"
 	v1 "k8s.io/api/core/v1"
@@ -102,6 +103,12 @@ func (c *mockGCECloud) Storage() *storage.Service {
 // IAM returns the IAM client
 func (c *mockGCECloud) IAM() *iam.Service {
 	klog.Fatalf("mockGCECloud::IAM not implemented")
+	return nil
+}
+
+// NameService returns the DNS client
+func (c *mockGCECloud) CloudDNS() *dns.Service {
+	klog.Fatalf("mockGCECloud::CloudDNS not implemented")
 	return nil
 }
 

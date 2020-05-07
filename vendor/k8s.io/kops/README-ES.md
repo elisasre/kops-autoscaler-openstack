@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/kubernetes/kops.svg?branch=master)](https://travis-ci.org/kubernetes/kops) [![Go Report Card](https://goreportcard.com/badge/k8s.io/kops)](https://goreportcard.com/report/k8s.io/kops)  [![GoDoc Widget]][GoDoc]
 
-[GoDoc]: https://godoc.org/k8s.io/kops
+[GoDoc]: https://pkg.go.dev/k8s.io/kops
 [GoDoc Widget]: https://godoc.org/k8s.io/kops?status.svg
 
 
@@ -81,12 +81,13 @@ particular de Kubernetes.
 
 #### Compatibilidad Matrix
 
-| kops version | k8s 1.5.x | k8s 1.6.x | k8s 1.7.x | k8s 1.8.x | k8s 1.9.x |
-|--------------|-----------|-----------|-----------|-----------|-----------|
-| 1.9.x        | Y         | Y         | Y         | Y         | Y         |
-| 1.8.x        | Y         | Y         | Y         | Y         | N         |
-| 1.7.x        | Y         | Y         | Y         | N         | N         |
-| 1.6.x        | Y         | Y         | N         | N         | N         |
+| kops version  | k8s 1.12.x | k8s 1.13.x | k8s 1.14.x | k8s 1.15.x | k8s 1.16.x |
+|---------------|------------|------------|------------|------------|------------|
+| 1.16.0        | ✔          | ✔          | ✔          | ✔          | ✔          |
+| 1.15.x        | ✔          | ✔          | ✔          | ✔          | ⚫         |
+| 1.14.x        | ✔          | ✔          | ✔          | ⚫         | ⚫         |
+| ~~1.13.x~~    | ✔          | ✔          | ⚫         | ⚫         | ⚫         |
+| ~~1.12.x~~    | ✔          | ⚫         | ⚫         | ⚫         | ⚫         |
 
 Utilice la última versión de kops para todas las versiones de Kubernetes, con la advertencia de que las versiones más altas de Kubernetes no cuentan con el respaldo _oficial_ de kops.
 

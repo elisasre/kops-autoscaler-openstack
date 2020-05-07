@@ -85,18 +85,22 @@ const TagNameKopsRole = "kubernetes.io/kops/role"
 // TagNameClusterOwnershipPrefix is the AWS tag used for ownership
 const TagNameClusterOwnershipPrefix = "kubernetes.io/cluster/"
 
+const tagNameDetachedInstance = "kops.k8s.io/detached-from-asg"
+
 const (
-	WellKnownAccountKopeio             = "383156758163"
-	WellKnownAccountRedhat             = "309956199498"
-	WellKnownAccountCoreOS             = "595879546273"
-	WellKnownAccountAmazonSystemLinux2 = "137112412989"
-	WellKnownAccountUbuntu             = "099720109477"
+	WellKnownAccountAmazonLinux2 = "137112412989"
+	WellKnownAccountCentOS       = "679593333241"
+	WellKnownAccountCoreOS       = "595879546273"
+	WellKnownAccountDebian9      = "379101102735"
+	WellKnownAccountDebian10     = "136693071363"
+	WellKnownAccountFlatcar      = "075585003325"
+	WellKnownAccountKopeio       = "383156758163"
+	WellKnownAccountRedhat       = "309956199498"
+	WellKnownAccountUbuntu       = "099720109477"
 )
 
 type AWSCloud interface {
 	fi.Cloud
-
-	Region() string
 
 	CloudFormation() *cloudformation.CloudFormation
 	EC2() ec2iface.EC2API
@@ -356,6 +360,23 @@ func deleteGroup(c AWSCloud, g *cloudinstances.CloudInstanceGroup) error {
 		launchTemplate = aws.StringValue(asg.LaunchTemplate.LaunchTemplateName)
 	}
 
+	// Delete detached instances
+	{
+		detached, err := findDetachedInstances(c, asg)
+		if err != nil {
+			return fmt.Errorf("error searching for detached instances for autoscaling group %q: %v", name, err)
+		}
+		if len(detached) > 0 {
+			klog.V(2).Infof("Deleting detached instances for autoscaling group %q", name)
+			req := &ec2.TerminateInstancesInput{
+				InstanceIds: detached,
+			}
+			if _, err := c.EC2().TerminateInstances(req); err != nil {
+				return fmt.Errorf("error deleting detached instances for autoscaling group %q: %v", name, err)
+			}
+		}
+	}
+
 	// Delete ASG
 	{
 		klog.V(2).Infof("Deleting autoscaling group %q", name)
@@ -416,12 +437,11 @@ func deleteInstance(c AWSCloud, i *cloudinstances.CloudInstanceGroupMember) erro
 		return fmt.Errorf("id was not set on CloudInstanceGroupMember: %v", i)
 	}
 
-	request := &autoscaling.TerminateInstanceInAutoScalingGroupInput{
-		InstanceId:                     aws.String(id),
-		ShouldDecrementDesiredCapacity: aws.Bool(false),
+	request := &ec2.TerminateInstancesInput{
+		InstanceIds: []*string{aws.String(id)},
 	}
 
-	if _, err := c.Autoscaling().TerminateInstanceInAutoScalingGroup(request); err != nil {
+	if _, err := c.EC2().TerminateInstances(request); err != nil {
 		return fmt.Errorf("error deleting instance %q: %v", id, err)
 	}
 
@@ -430,7 +450,42 @@ func deleteInstance(c AWSCloud, i *cloudinstances.CloudInstanceGroupMember) erro
 	return nil
 }
 
-// TODO not used yet, as this requires a major refactor of rolling-update code, slowly but surely
+// DetachInstance causes an aws instance to no longer be counted against the ASG's size limits.
+func (c *awsCloudImplementation) DetachInstance(i *cloudinstances.CloudInstanceGroupMember) error {
+	if c.spotinst != nil {
+		return spotinst.DetachInstance(c.spotinst, i)
+	}
+
+	return detachInstance(c, i)
+}
+
+func detachInstance(c AWSCloud, i *cloudinstances.CloudInstanceGroupMember) error {
+	id := i.ID
+	if id == "" {
+		return fmt.Errorf("id was not set on CloudInstanceGroupMember: %v", i)
+	}
+
+	asg := i.CloudInstanceGroup.Raw.(*autoscaling.Group)
+	if err := c.CreateTags(id, map[string]string{tagNameDetachedInstance: *asg.AutoScalingGroupName}); err != nil {
+		return fmt.Errorf("error tagging instance %q: %v", id, err)
+	}
+
+	// TODO this also deregisters the instance from any ELB attached to the ASG. Do we care?
+
+	input := &autoscaling.DetachInstancesInput{
+		AutoScalingGroupName:           aws.String(i.CloudInstanceGroup.HumanName),
+		InstanceIds:                    []*string{aws.String(id)},
+		ShouldDecrementDesiredCapacity: aws.Bool(false),
+	}
+
+	if _, err := c.Autoscaling().DetachInstances(input); err != nil {
+		return fmt.Errorf("error detaching instance %q: %v", id, err)
+	}
+
+	klog.V(8).Infof("detached aws ec2 instance %q", id)
+
+	return nil
+}
 
 // GetCloudGroups returns a groups of instances that back a kops instance groups
 func (c *awsCloudImplementation) GetCloudGroups(cluster *kops.Cluster, instancegroups []*kops.InstanceGroup, warnUnmatched bool, nodes []v1.Node) (map[string]*cloudinstances.CloudInstanceGroup, error) {
@@ -465,7 +520,7 @@ func getCloudGroups(c AWSCloud, cluster *kops.Cluster, instancegroups []*kops.In
 			continue
 		}
 
-		groups[instancegroup.ObjectMeta.Name], err = awsBuildCloudInstanceGroup(c, instancegroup, asg, nodeMap)
+		groups[instancegroup.ObjectMeta.Name], err = awsBuildCloudInstanceGroup(c, cluster, instancegroup, asg, nodeMap)
 		if err != nil {
 			return nil, fmt.Errorf("error getting cloud instance group %q: %v", instancegroup.ObjectMeta.Name, err)
 		}
@@ -591,25 +646,30 @@ func findAutoscalingGroupLaunchConfiguration(c AWSCloud, g *autoscaling.Group) (
 	if g.MixedInstancesPolicy != nil {
 		if g.MixedInstancesPolicy.LaunchTemplate != nil {
 			if g.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification != nil {
-				// honestly!!
-				name = aws.StringValue(g.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateName)
-				request := &ec2.DescribeLaunchTemplateVersionsInput{
-					LaunchTemplateName: &name,
-				}
-
-				versions, err := c.EC2().DescribeLaunchTemplateVersions(request)
-				if err != nil {
-					return "", fmt.Errorf("error finding versions for launch template: %v", err)
-				}
-
 				var version string
-				for _, v := range versions.LaunchTemplateVersions {
-					if *v.DefaultVersion {
-						version = strconv.FormatInt(*v.VersionNumber, 10)
-						break
+				name = aws.StringValue(g.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateName)
+				//See what version the ASG is set to use
+				mixedVersion := aws.StringValue(g.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.Version)
+				//Correctly Handle Default and Latest Versions
+				if mixedVersion == "" || mixedVersion == "$Default" || mixedVersion == "$Latest" {
+					request := &ec2.DescribeLaunchTemplatesInput{
+						LaunchTemplateNames: []*string{&name},
 					}
+					dltResponse, err := c.EC2().DescribeLaunchTemplates(request)
+					if err != nil {
+						return "", fmt.Errorf("error describing launch templates: %v", err)
+					}
+					launchTemplate := dltResponse.LaunchTemplates[0]
+					if mixedVersion == "" || mixedVersion == "$Default" {
+						version = strconv.FormatInt(*launchTemplate.DefaultVersionNumber, 10)
+					} else {
+						version = strconv.FormatInt(*launchTemplate.LatestVersionNumber, 10)
+					}
+				} else {
+					version = mixedVersion
 				}
-
+				klog.V(4).Infof("Launch Template Version Specified By ASG: %v", mixedVersion)
+				klog.V(4).Infof("Launch Template Version we are using for compare: %v", version)
 				if name != "" {
 					launchTemplate := name + ":" + version
 					return launchTemplate, nil
@@ -641,11 +701,13 @@ func findInstanceLaunchConfiguration(i *autoscaling.Instance) string {
 	return ""
 }
 
-func awsBuildCloudInstanceGroup(c AWSCloud, ig *kops.InstanceGroup, g *autoscaling.Group, nodeMap map[string]*v1.Node) (*cloudinstances.CloudInstanceGroup, error) {
+func awsBuildCloudInstanceGroup(c AWSCloud, cluster *kops.Cluster, ig *kops.InstanceGroup, g *autoscaling.Group, nodeMap map[string]*v1.Node) (*cloudinstances.CloudInstanceGroup, error) {
 	newConfigName, err := findAutoscalingGroupLaunchConfiguration(c, g)
 	if err != nil {
 		return nil, err
 	}
+
+	instanceSeen := map[string]bool{}
 
 	cg := &cloudinstances.CloudInstanceGroup{
 		HumanName:     aws.StringValue(g.AutoScalingGroupName),
@@ -661,6 +723,7 @@ func awsBuildCloudInstanceGroup(c AWSCloud, ig *kops.InstanceGroup, g *autoscali
 			klog.Warningf("ignoring instance with no instance id: %s in autoscaling group: %s", id, cg.HumanName)
 			continue
 		}
+		instanceSeen[id] = true
 		// @step: check if the instance is terminating
 		if aws.StringValue(i.LifecycleState) == autoscaling.LifecycleStateTerminating {
 			klog.Warningf("ignoring instance as it is terminating: %s in autoscaling group: %s", id, cg.HumanName)
@@ -673,7 +736,42 @@ func awsBuildCloudInstanceGroup(c AWSCloud, ig *kops.InstanceGroup, g *autoscali
 		}
 	}
 
+	detached, err := findDetachedInstances(c, g)
+	if err != nil {
+		return nil, fmt.Errorf("error searching for detached instances: %v", err)
+	}
+	for _, id := range detached {
+		if id != nil && *id != "" && !instanceSeen[*id] {
+			if err := cg.NewDetachedCloudInstanceGroupMember(*id, nodeMap); err != nil {
+				return nil, fmt.Errorf("error creating cloud instance group member: %v", err)
+			}
+			instanceSeen[*id] = true
+		}
+	}
+
 	return cg, nil
+}
+
+func findDetachedInstances(c AWSCloud, g *autoscaling.Group) ([]*string, error) {
+	req := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			NewEC2Filter("tag:"+tagNameDetachedInstance, aws.StringValue(g.AutoScalingGroupName)),
+			NewEC2Filter("instance-state-name", "pending", "running", "stopping", "stopped"),
+		},
+	}
+
+	result, err := c.EC2().DescribeInstances(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var detached []*string
+	for _, r := range result.Reservations {
+		for _, i := range r.Instances {
+			detached = append(detached, i.InstanceId)
+		}
+	}
+	return detached, nil
 }
 
 func (c *awsCloudImplementation) Tags() map[string]string {
@@ -702,7 +800,8 @@ var tagsEventualConsistencyErrors = map[string]bool{
 	"InvalidInternetGatewayID.NotFound": true,
 }
 
-// isTagsEventualConsistencyError checks if the error is one of the errors encountered when we try to create/get tags before the resource has fully 'propagated' in EC2
+// isTagsEventualConsistencyError checks if the error is one of the errors encountered
+// when we try to create/get tags before the resource has fully 'propagated' in EC2
 func isTagsEventualConsistencyError(err error) bool {
 	if awsErr, ok := err.(awserr.Error); ok {
 		isEventualConsistency, found := tagsEventualConsistencyErrors[awsErr.Code()]
@@ -715,21 +814,22 @@ func isTagsEventualConsistencyError(err error) bool {
 	return false
 }
 
-// GetTags will fetch the tags for the specified resource, retrying (up to MaxDescribeTagsAttempts) if it hits an eventual-consistency type error
+// GetTags will fetch the tags for the specified resource,
+// retrying (up to MaxDescribeTagsAttempts) if it hits an eventual-consistency type error
 func (c *awsCloudImplementation) GetTags(resourceID string) (map[string]string, error) {
 	return getTags(c, resourceID)
 }
 
-func getTags(c AWSCloud, resourceId string) (map[string]string, error) {
-	if resourceId == "" {
-		return nil, fmt.Errorf("resourceId not provided to getTags")
+func getTags(c AWSCloud, resourceID string) (map[string]string, error) {
+	if resourceID == "" {
+		return nil, fmt.Errorf("resourceID not provided to getTags")
 	}
 
 	tags := map[string]string{}
 
 	request := &ec2.DescribeTagsInput{
 		Filters: []*ec2.Filter{
-			NewEC2Filter("resource-id", resourceId),
+			NewEC2Filter("resource-id", resourceID),
 		},
 	}
 
@@ -741,19 +841,19 @@ func getTags(c AWSCloud, resourceId string) (map[string]string, error) {
 		if err != nil {
 			if isTagsEventualConsistencyError(err) {
 				if attempt > DescribeTagsMaxAttempts {
-					return nil, fmt.Errorf("Got retryable error while getting tags on %q, but retried too many times without success: %v", resourceId, err)
+					return nil, fmt.Errorf("got retryable error while getting tags on %q, but retried too many times without success: %v", resourceID, err)
 				}
 
 				if (attempt % DescribeTagsLogInterval) == 0 {
-					klog.Infof("waiting for eventual consistency while describing tags on %q", resourceId)
+					klog.Infof("waiting for eventual consistency while describing tags on %q", resourceID)
 				}
 
-				klog.V(2).Infof("will retry after encountering error getting tags on %q: %v", resourceId, err)
+				klog.V(2).Infof("will retry after encountering error getting tags on %q: %v", resourceID, err)
 				time.Sleep(DescribeTagsRetryInterval)
 				continue
 			}
 
-			return nil, fmt.Errorf("error listing tags on %v: %v", resourceId, err)
+			return nil, fmt.Errorf("error listing tags on %v: %v", resourceID, err)
 		}
 
 		for _, tag := range response.Tags {
@@ -769,11 +869,11 @@ func getTags(c AWSCloud, resourceId string) (map[string]string, error) {
 }
 
 // CreateTags will add tags to the specified resource, retrying up to MaxCreateTagsAttempts times if it hits an eventual-consistency type error
-func (c *awsCloudImplementation) CreateTags(resourceId string, tags map[string]string) error {
-	return createTags(c, resourceId, tags)
+func (c *awsCloudImplementation) CreateTags(resourceID string, tags map[string]string) error {
+	return createTags(c, resourceID, tags)
 }
 
-func createTags(c AWSCloud, resourceId string, tags map[string]string) error {
+func createTags(c AWSCloud, resourceID string, tags map[string]string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -789,38 +889,39 @@ func createTags(c AWSCloud, resourceId string, tags map[string]string) error {
 
 		request := &ec2.CreateTagsInput{
 			Tags:      ec2Tags,
-			Resources: []*string{&resourceId},
+			Resources: []*string{&resourceID},
 		}
 
 		_, err := c.EC2().CreateTags(request)
 		if err != nil {
 			if isTagsEventualConsistencyError(err) {
 				if attempt > CreateTagsMaxAttempts {
-					return fmt.Errorf("Got retryable error while creating tags on %q, but retried too many times without success: %v", resourceId, err)
+					return fmt.Errorf("got retryable error while creating tags on %q, but retried too many times without success: %v", resourceID, err)
 				}
 
 				if (attempt % CreateTagsLogInterval) == 0 {
-					klog.Infof("waiting for eventual consistency while creating tags on %q", resourceId)
+					klog.Infof("waiting for eventual consistency while creating tags on %q", resourceID)
 				}
 
-				klog.V(2).Infof("will retry after encountering error creating tags on %q: %v", resourceId, err)
+				klog.V(2).Infof("will retry after encountering error creating tags on %q: %v", resourceID, err)
 				time.Sleep(CreateTagsRetryInterval)
 				continue
 			}
 
-			return fmt.Errorf("error creating tags on %v: %v", resourceId, err)
+			return fmt.Errorf("error creating tags on %v: %v", resourceID, err)
 		}
 
 		return nil
 	}
 }
 
-// DeleteTags will remove tags from the specified resource, retrying up to MaxCreateTagsAttempts times if it hits an eventual-consistency type error
-func (c *awsCloudImplementation) DeleteTags(resourceId string, tags map[string]string) error {
-	return deleteTags(c, resourceId, tags)
+// DeleteTags will remove tags from the specified resource,
+// retrying up to MaxCreateTagsAttempts times if it hits an eventual-consistency type error
+func (c *awsCloudImplementation) DeleteTags(resourceID string, tags map[string]string) error {
+	return deleteTags(c, resourceID, tags)
 }
 
-func deleteTags(c AWSCloud, resourceId string, tags map[string]string) error {
+func deleteTags(c AWSCloud, resourceID string, tags map[string]string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -836,26 +937,26 @@ func deleteTags(c AWSCloud, resourceId string, tags map[string]string) error {
 
 		request := &ec2.DeleteTagsInput{
 			Tags:      ec2Tags,
-			Resources: []*string{&resourceId},
+			Resources: []*string{&resourceID},
 		}
 
 		_, err := c.EC2().DeleteTags(request)
 		if err != nil {
 			if isTagsEventualConsistencyError(err) {
 				if attempt > DeleteTagsMaxAttempts {
-					return fmt.Errorf("Got retryable error while deleting tags on %q, but retried too many times without success: %v", resourceId, err)
+					return fmt.Errorf("got retryable error while deleting tags on %q, but retried too many times without success: %v", resourceID, err)
 				}
 
 				if (attempt % DeleteTagsLogInterval) == 0 {
-					klog.Infof("waiting for eventual consistency while deleting tags on %q", resourceId)
+					klog.Infof("waiting for eventual consistency while deleting tags on %q", resourceID)
 				}
 
-				klog.V(2).Infof("will retry after encountering error deleting tags on %q: %v", resourceId, err)
+				klog.V(2).Infof("will retry after encountering error deleting tags on %q: %v", resourceID, err)
 				time.Sleep(DeleteTagsRetryInterval)
 				continue
 			}
 
-			return fmt.Errorf("error deleting tags on %v: %v", resourceId, err)
+			return fmt.Errorf("error deleting tags on %v: %v", resourceID, err)
 		}
 
 		return nil
@@ -903,27 +1004,21 @@ func getELBTags(c AWSCloud, loadBalancerName string) (map[string]string, error) 
 	request := &elb.DescribeTagsInput{
 		LoadBalancerNames: []*string{&loadBalancerName},
 	}
-
-	attempt := 0
-	for {
-		attempt++
-
-		response, err := c.ELB().DescribeTags(request)
-		if err != nil {
-			return nil, fmt.Errorf("error listing tags on %v: %v", loadBalancerName, err)
-		}
-
-		for _, tagset := range response.TagDescriptions {
-			for _, tag := range tagset.Tags {
-				tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
-			}
-		}
-
-		return tags, nil
+	response, err := c.ELB().DescribeTags(request)
+	if err != nil {
+		return nil, fmt.Errorf("error listing tags on %v: %v", loadBalancerName, err)
 	}
+
+	for _, tagset := range response.TagDescriptions {
+		for _, tag := range tagset.Tags {
+			tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
+		}
+	}
+	return tags, nil
 }
 
-// CreateELBTags will add tags to the specified loadBalancer, retrying up to MaxCreateTagsAttempts times if it hits an eventual-consistency type error
+// CreateELBTags will add tags to the specified loadBalancer,
+// retrying up to MaxCreateTagsAttempts times if it hits an eventual-consistency type error
 func (c *awsCloudImplementation) CreateELBTags(loadBalancerName string, tags map[string]string) error {
 	return createELBTags(c, loadBalancerName, tags)
 }
@@ -938,22 +1033,17 @@ func createELBTags(c AWSCloud, loadBalancerName string, tags map[string]string) 
 		elbTags = append(elbTags, &elb.Tag{Key: aws.String(k), Value: aws.String(v)})
 	}
 
-	attempt := 0
-	for {
-		attempt++
-
-		request := &elb.AddTagsInput{
-			Tags:              elbTags,
-			LoadBalancerNames: []*string{&loadBalancerName},
-		}
-
-		_, err := c.ELB().AddTags(request)
-		if err != nil {
-			return fmt.Errorf("error creating tags on %v: %v", loadBalancerName, err)
-		}
-
-		return nil
+	request := &elb.AddTagsInput{
+		Tags:              elbTags,
+		LoadBalancerNames: []*string{&loadBalancerName},
 	}
+
+	_, err := c.ELB().AddTags(request)
+	if err != nil {
+		return fmt.Errorf("error creating tags on %v: %v", loadBalancerName, err)
+	}
+
+	return nil
 }
 
 // RemoveELBTags will remove tags to the specified loadBalancer, retrying up to MaxCreateTagsAttempts times if it hits an eventual-consistency type error
@@ -971,22 +1061,17 @@ func removeELBTags(c AWSCloud, loadBalancerName string, tags map[string]string) 
 		elbTagKeysOnly = append(elbTagKeysOnly, &elb.TagKeyOnly{Key: aws.String(k)})
 	}
 
-	attempt := 0
-	for {
-		attempt++
-
-		request := &elb.RemoveTagsInput{
-			Tags:              elbTagKeysOnly,
-			LoadBalancerNames: []*string{&loadBalancerName},
-		}
-
-		_, err := c.ELB().RemoveTags(request)
-		if err != nil {
-			return fmt.Errorf("error creating tags on %v: %v", loadBalancerName, err)
-		}
-
-		return nil
+	request := &elb.RemoveTagsInput{
+		Tags:              elbTagKeysOnly,
+		LoadBalancerNames: []*string{&loadBalancerName},
 	}
+
+	_, err := c.ELB().RemoveTags(request)
+	if err != nil {
+		return fmt.Errorf("error creating tags on %v: %v", loadBalancerName, err)
+	}
+
+	return nil
 }
 
 func (c *awsCloudImplementation) GetELBV2Tags(ResourceArn string) (map[string]string, error) {
@@ -999,24 +1084,18 @@ func getELBV2Tags(c AWSCloud, ResourceArn string) (map[string]string, error) {
 	request := &elbv2.DescribeTagsInput{
 		ResourceArns: []*string{&ResourceArn},
 	}
-
-	attempt := 0
-	for {
-		attempt++
-
-		response, err := c.ELBV2().DescribeTags(request)
-		if err != nil {
-			return nil, fmt.Errorf("error listing tags on %v: %v", ResourceArn, err)
-		}
-
-		for _, tagset := range response.TagDescriptions {
-			for _, tag := range tagset.Tags {
-				tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
-			}
-		}
-
-		return tags, nil
+	response, err := c.ELBV2().DescribeTags(request)
+	if err != nil {
+		return nil, fmt.Errorf("error listing tags on %v: %v", ResourceArn, err)
 	}
+
+	for _, tagset := range response.TagDescriptions {
+		for _, tag := range tagset.Tags {
+			tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
+		}
+	}
+
+	return tags, nil
 }
 
 func (c *awsCloudImplementation) CreateELBV2Tags(ResourceArn string, tags map[string]string) error {
@@ -1032,23 +1111,17 @@ func createELBV2Tags(c AWSCloud, ResourceArn string, tags map[string]string) err
 	for k, v := range tags {
 		elbv2Tags = append(elbv2Tags, &elbv2.Tag{Key: aws.String(k), Value: aws.String(v)})
 	}
-
-	attempt := 0
-	for {
-		attempt++
-
-		request := &elbv2.AddTagsInput{
-			Tags:         elbv2Tags,
-			ResourceArns: []*string{&ResourceArn},
-		}
-
-		_, err := c.ELBV2().AddTags(request)
-		if err != nil {
-			return fmt.Errorf("error creating tags on %v: %v", ResourceArn, err)
-		}
-
-		return nil
+	request := &elbv2.AddTagsInput{
+		Tags:         elbv2Tags,
+		ResourceArns: []*string{&ResourceArn},
 	}
+
+	_, err := c.ELBV2().AddTags(request)
+	if err != nil {
+		return fmt.Errorf("error creating tags on %v: %v", ResourceArn, err)
+	}
+
+	return nil
 }
 
 func (c *awsCloudImplementation) BuildTags(name *string) map[string]string {
@@ -1187,14 +1260,24 @@ func resolveImage(ec2Client ec2iface.EC2API, name string) (*ec2.Image, error) {
 
 			// Check for well known owner aliases
 			switch owner {
-			case "kope.io":
-				owner = WellKnownAccountKopeio
-			case "coreos.com":
+			case "amazon", "amazon.com":
+				owner = WellKnownAccountAmazonLinux2
+			case "centos":
+				owner = WellKnownAccountCentOS
+			case "coreos", "coreos.com":
 				owner = WellKnownAccountCoreOS
-			case "redhat.com":
+			case "debian9":
+				owner = WellKnownAccountDebian9
+			case "debian10":
+				owner = WellKnownAccountDebian10
+			case "flatcar":
+				owner = WellKnownAccountFlatcar
+			case "kopeio", "kope.io":
+				owner = WellKnownAccountKopeio
+			case "redhat", "redhat.com":
 				owner = WellKnownAccountRedhat
-			case "amazon.com":
-				owner = WellKnownAccountAmazonSystemLinux2
+			case "ubuntu":
+				owner = WellKnownAccountUbuntu
 			}
 
 			request.Owners = []*string{&owner}
@@ -1259,7 +1342,7 @@ func ValidateZones(zones []string, cloud AWSCloud) error {
 			}
 
 			klog.Infof("Known zones: %q", strings.Join(knownZones, ","))
-			return fmt.Errorf("Zone is not a recognized AZ: %q (check you have specified a valid zone?)", zone)
+			return fmt.Errorf("error Zone is not a recognized AZ: %q (check you have specified a valid zone?)", zone)
 		}
 
 		for _, message := range z.Messages {
@@ -1277,7 +1360,7 @@ func ValidateZones(zones []string, cloud AWSCloud) error {
 func (c *awsCloudImplementation) DNS() (dnsprovider.Interface, error) {
 	provider, err := dnsprovider.GetDnsProvider(dnsproviderroute53.ProviderName, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Error building (k8s) DNS provider: %v", err)
+		return nil, fmt.Errorf("error building (k8s) DNS provider: %v", err)
 	}
 	return provider, nil
 }
@@ -1363,17 +1446,13 @@ func (c *awsCloudImplementation) DefaultInstanceType(cluster *kops.Cluster, ig *
 	var candidates []string
 
 	switch ig.Spec.Role {
-	case kops.InstanceGroupRoleMaster:
-		// Some regions do not (currently) support the m3 family; the c4 large is the cheapest non-burstable instance
-		// (us-east-2, ca-central-1, eu-west-2, ap-northeast-2).
-		// Also some accounts are no longer supporting m3 in us-east-1 zones
-		candidates = []string{"m3.medium", "c4.large"}
-
-	case kops.InstanceGroupRoleNode:
-		candidates = []string{"t2.medium"}
+	case kops.InstanceGroupRoleMaster, kops.InstanceGroupRoleNode:
+		// t3.medium is the cheapest instance with 4GB of mem, unlimited by default, fast and has decent network
+		// c5.large and c4.large are a good second option in case t3.medium is not available in the AZ
+		candidates = []string{"t3.medium", "c5.large", "c4.large"}
 
 	case kops.InstanceGroupRoleBastion:
-		candidates = []string{"t2.micro"}
+		candidates = []string{"t3.micro", "t2.micro"}
 
 	default:
 		return "", fmt.Errorf("unhandled role %q", ig.Spec.Role)

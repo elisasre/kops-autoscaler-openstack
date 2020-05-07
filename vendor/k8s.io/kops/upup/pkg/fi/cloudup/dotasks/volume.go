@@ -51,7 +51,7 @@ func (v *Volume) Find(c *fi.Context) (*Volume, error) {
 	volService := cloud.Volumes()
 
 	volumes, _, err := volService.ListVolumes(context.TODO(), &godo.ListVolumeParams{
-		Region: cloud.Region,
+		Region: cloud.Region(),
 		Name:   fi.StringValue(v.Name),
 	})
 	if err != nil {
@@ -133,9 +133,9 @@ func (_ *Volume) RenderDO(t *do.DOAPITarget, a, e, changes *Volume) error {
 // terraformVolume represents the digitalocean_volume resource in terraform
 // https://www.terraform.io/docs/providers/do/r/volume.html
 type terraformVolume struct {
-	Name   *string `json:"name"`
-	SizeGB *int64  `json:"size"`
-	Region *string `json:"region"`
+	Name   *string `json:"name" cty:"name"`
+	SizeGB *int64  `json:"size" cty:"size"`
+	Region *string `json:"region" cty:"region"`
 }
 
 func (_ *Volume) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *Volume) error {

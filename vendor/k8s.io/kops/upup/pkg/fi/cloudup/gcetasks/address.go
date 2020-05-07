@@ -19,7 +19,7 @@ package gcetasks
 import (
 	"fmt"
 
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
 	"k8s.io/klog"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
@@ -131,14 +131,14 @@ func (_ *Address) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Address) error {
 			return fmt.Errorf("error waiting for IP Address: %v", err)
 		}
 	} else {
-		return fmt.Errorf("Cannot apply changes to IP Address: %v", changes)
+		return fmt.Errorf("cannot apply changes to IP Address: %v", changes)
 	}
 
 	return nil
 }
 
 type terraformAddress struct {
-	Name *string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty" cty:"name"`
 }
 
 func (_ *Address) RenderTerraform(t *terraform.TerraformTarget, a, e, changes *Address) error {

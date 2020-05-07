@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
-	compute "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
 	"k8s.io/klog"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
@@ -172,7 +172,7 @@ func (_ *Subnet) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Subnet) error {
 					return fmt.Errorf("error patching Subnet: %v", err)
 				}
 				patch = false
-				subnet, err = cloud.Compute().Subnetworks.Get(cloud.Project(), cloud.Region(), *e.GCEName).Do()
+				_, err = cloud.Compute().Subnetworks.Get(cloud.Project(), cloud.Region(), *e.GCEName).Do()
 				if err != nil {
 					return fmt.Errorf("error fetching subnet for patch: %v", err)
 				}
@@ -193,7 +193,7 @@ func (_ *Subnet) RenderGCE(t *gce.GCEAPITarget, a, e, changes *Subnet) error {
 
 func (e *Subnet) URL(project string, region string) string {
 	u := gce.GoogleCloudURL{
-		Version: "beta",
+		Version: "v1",
 		Project: project,
 		Name:    *e.GCEName,
 		Type:    "subnetworks",
@@ -203,18 +203,18 @@ func (e *Subnet) URL(project string, region string) string {
 }
 
 type terraformSubnet struct {
-	Name    *string            `json:"name"`
-	Network *terraform.Literal `json:"network"`
-	Region  *string            `json:"region"`
-	CIDR    *string            `json:"ip_cidr_range"`
+	Name    *string            `json:"name" cty:"name"`
+	Network *terraform.Literal `json:"network" cty:"network"`
+	Region  *string            `json:"region" cty:"region"`
+	CIDR    *string            `json:"ip_cidr_range" cty:"ip_cidr_range"`
 
 	// SecondaryIPRange defines additional IP ranges
-	SecondaryIPRange []terraformSubnetRange `json:"secondary_ip_range,omitempty"`
+	SecondaryIPRange []terraformSubnetRange `json:"secondary_ip_range,omitempty" cty:"secondary_ip_range"`
 }
 
 type terraformSubnetRange struct {
-	Name string `json:"range_name,omitempty"`
-	CIDR string `json:"ip_cidr_range,omitempty"`
+	Name string `json:"range_name,omitempty" cty:"range_name"`
+	CIDR string `json:"ip_cidr_range,omitempty" cty:"ip_cidr_range"`
 }
 
 func (_ *Subnet) RenderSubnet(t *terraform.TerraformTarget, a, e, changes *Subnet) error {

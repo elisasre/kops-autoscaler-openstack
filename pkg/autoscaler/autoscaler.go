@@ -1,6 +1,7 @@
 package autoscaler
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -75,10 +76,11 @@ func Run(opts *Options) error {
 		if fails > 5 {
 			return fmt.Errorf("Too many failed attempts")
 		}
+		ctx := context.Background()
 		time.Sleep(time.Duration(opts.Sleep) * time.Second)
 		glog.Infof("Executing...\n")
 
-		err := osASG.updateApplyCmd()
+		err := osASG.updateApplyCmd(ctx)
 		if err != nil {
 			glog.Errorf("Error updating applycmd %v", err)
 			fails++
@@ -96,7 +98,7 @@ func Run(opts *Options) error {
 			// ApplyClusterCmd is always appending assets
 			// so when dryrun is executed first the assets will be duplicated if we do not set it nil here
 			osASG.ApplyCmd.Assets = nil
-			err = osASG.update()
+			err = osASG.update(ctx)
 			if err != nil {
 				glog.Errorf("Error updating cluster %v", err)
 				fails++
@@ -107,13 +109,13 @@ func Run(opts *Options) error {
 	}
 }
 
-func (osASG *openstackASG) updateApplyCmd() error {
-	cluster, err := osASG.clientset.GetCluster(osASG.opts.ClusterName)
+func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
+	cluster, err := osASG.clientset.GetCluster(ctx, osASG.opts.ClusterName)
 	if err != nil {
 		return fmt.Errorf("error initializing cluster %v", err)
 	}
 
-	list, err := osASG.clientset.InstanceGroupsFor(cluster).List(metav1.ListOptions{})
+	list, err := osASG.clientset.InstanceGroupsFor(cluster).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -186,13 +188,13 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 	return false, nil
 }
 
-func (osASG *openstackASG) update() error {
+func (osASG *openstackASG) update(ctx context.Context) error {
 	osASG.ApplyCmd.TargetName = cloudup.TargetDirect
 	osASG.ApplyCmd.DryRun = false
 	var options fi.RunTasksOptions
 	options.InitDefaults()
 	osASG.ApplyCmd.RunTasksOptions = &options
-	if err := osASG.ApplyCmd.Run(); err != nil {
+	if err := osASG.ApplyCmd.Run(ctx); err != nil {
 		return err
 	}
 	return nil

@@ -52,7 +52,13 @@ func (b *ServerGroupModelBuilder) buildInstances(c *fi.ModelBuilderContext, sg *
 
 	var igUserData *string
 	igMeta := make(map[string]string)
-
+	cloudTags, err := b.KopsModelContext.CloudTagsForInstanceGroup(ig)
+	if err != nil {
+		return fmt.Errorf("could not get cloud tags for instance group %s: %v", ig.Name, err)
+	}
+	for label, labelVal := range cloudTags {
+		igMeta[label] = labelVal
+	}
 	if ig.Spec.Role != kops.InstanceGroupRoleBastion {
 		// Bastion does not belong to the cluster and will not be running protokube.
 
@@ -79,13 +85,13 @@ func (b *ServerGroupModelBuilder) buildInstances(c *fi.ModelBuilderContext, sg *
 
 	startupScript, err := b.BootstrapScript.ResourceNodeUp(ig, b.Cluster)
 	if err != nil {
-		return fmt.Errorf("Could not create startup script for instance group %s: %v", ig.Name, err)
+		return fmt.Errorf("could not create startup script for instance group %s: %v", ig.Name, err)
 	}
 	if startupScript != nil {
 		// var userData bytes.Buffer
 		startupStr, err := startupScript.AsString()
 		if err != nil {
-			return fmt.Errorf("Could not create startup script for instance group %s: %v", ig.Name, err)
+			return fmt.Errorf("could not create startup script for instance group %s: %v", ig.Name, err)
 		}
 		igUserData = fi.String(startupStr)
 	}
@@ -274,11 +280,16 @@ func (b *ServerGroupModelBuilder) Build(c *fi.ModelBuilderContext) error {
 			return fmt.Errorf("could not find subnet for master loadbalancer")
 		}
 		lbTask := &openstacktasks.LB{
-			Name:          fi.String(b.Cluster.Spec.MasterPublicName),
-			Subnet:        fi.String(lbSubnetName),
-			Lifecycle:     b.Lifecycle,
-			SecurityGroup: b.LinkToSecurityGroup(b.Cluster.Spec.MasterPublicName),
+			Name:      fi.String(b.Cluster.Spec.MasterPublicName),
+			Subnet:    fi.String(lbSubnetName),
+			Lifecycle: b.Lifecycle,
 		}
+
+		useVIPACL := b.UseVIPACL()
+		if !useVIPACL {
+			lbTask.SecurityGroup = b.LinkToSecurityGroup(b.Cluster.Spec.MasterPublicName)
+		}
+
 		c.AddTask(lbTask)
 
 		lbfipTask := &openstacktasks.FloatingIP{
@@ -303,6 +314,9 @@ func (b *ServerGroupModelBuilder) Build(c *fi.ModelBuilderContext) error {
 			Name:      lbTask.Name,
 			Lifecycle: b.Lifecycle,
 			Pool:      poolTask,
+		}
+		if useVIPACL {
+			listenerTask.AllowedCIDRs = b.Cluster.Spec.KubernetesAPIAccess
 		}
 		c.AddTask(listenerTask)
 

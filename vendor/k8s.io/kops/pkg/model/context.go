@@ -183,7 +183,7 @@ func (m *KopsModelContext) NodeInstanceGroups() []*kops.InstanceGroup {
 
 // CloudTagsForInstanceGroup computes the tags to apply to instances in the specified InstanceGroup
 func (m *KopsModelContext) CloudTagsForInstanceGroup(ig *kops.InstanceGroup) (map[string]string, error) {
-	labels := make(map[string]string)
+	labels := m.CloudTags(m.AutoscalingGroupName(ig), false)
 
 	// Apply any user-specified global labels first so they can be overridden by IG-specific labels
 	for k, v := range m.Cluster.Spec.CloudLabels {
@@ -244,13 +244,11 @@ func (m *KopsModelContext) CloudTags(name string, shared bool) map[string]string
 
 		// Kubernetes 1.6 introduced the shared ownership tag; that replaces TagClusterName
 		setLegacyTag := true
-		if m.IsKubernetesGTE("1.6") {
-			// For the moment, we only skip the legacy tag for shared resources
-			// (other people may be using it)
-			if shared {
-				klog.V(4).Infof("Skipping %q tag for shared resource", awsup.TagClusterName)
-				setLegacyTag = false
-			}
+		// For the moment, we only skip the legacy tag for shared resources
+		// (other people may be using it)
+		if shared {
+			klog.V(4).Infof("Skipping %q tag for shared resource", awsup.TagClusterName)
+			setLegacyTag = false
 		}
 		if setLegacyTag {
 			tags[awsup.TagClusterName] = m.Cluster.ObjectMeta.Name
@@ -260,6 +258,9 @@ func (m *KopsModelContext) CloudTags(name string, shared bool) map[string]string
 			tags["kubernetes.io/cluster/"+m.Cluster.ObjectMeta.Name] = "shared"
 		} else {
 			tags["kubernetes.io/cluster/"+m.Cluster.ObjectMeta.Name] = "owned"
+			for k, v := range m.Cluster.Spec.CloudLabels {
+				tags[k] = v
+			}
 		}
 
 	}
@@ -379,6 +380,11 @@ func (m *KopsModelContext) KubernetesVersion() semver.Version {
 // IsKubernetesGTE checks if the kubernetes version is at least version, ignoring prereleases / patches
 func (m *KopsModelContext) IsKubernetesGTE(version string) bool {
 	return util.IsKubernetesGTE(version, m.KubernetesVersion())
+}
+
+// IsKubernetesLT checks if the kubernetes version is before the specified version, ignoring prereleases / patches
+func (m *KopsModelContext) IsKubernetesLT(version string) bool {
+	return !m.IsKubernetesGTE(version)
 }
 
 // WellKnownServiceIP returns a service ip with the service cidr
