@@ -2,3 +2,4 @@ bin/*
 gotest-coverage.out
 gotest-report.out
 golint-report.out
+vendor/*
