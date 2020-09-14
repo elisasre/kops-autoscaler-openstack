@@ -62,7 +62,7 @@ func Run(opts *Options) error {
 		return fmt.Errorf("error parsing registry path %q: %v", opts.StateStore, err)
 	}
 
-	clientset := vfsclientset.NewVFSClientset(registryBase, true)
+	clientset := vfsclientset.NewVFSClientset(registryBase)
 	osASG := &openstackASG{
 		opts:      opts,
 		clientset: clientset,
@@ -139,7 +139,6 @@ func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
 		Phase:          "",
 		TargetName:     cloudup.TargetDryRun,
 		OutDir:         "out",
-		Models:         []string{"proto", "cloudup"},
 	}
 	return nil
 }
