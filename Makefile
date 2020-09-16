@@ -1,5 +1,5 @@
 OPERATOR_NAME := kops-autoscaler-openstack
-IMAGE := elisaoyj/$(OPERATOR_NAME)
+IMAGE := quay.io/elisaoyj/$(OPERATOR_NAME)
 
 .PHONY: clean deps test gofmt ensure check build build-image build-linux-amd64 run
 

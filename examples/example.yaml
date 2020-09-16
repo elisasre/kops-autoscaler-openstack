@@ -45,7 +45,7 @@ spec:
           value: "1"
       containers:
       - name: kops-autoscaler-openstack
-        image: elisaoyj/kops-autoscaler-openstack:latest
+        image: quay.io/elisaoyj/kops-autoscaler-openstack:latest
         env:
         - name: KOPS_STATE_STORE
           value: addresshere # FILL ME

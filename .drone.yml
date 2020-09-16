@@ -29,7 +29,7 @@ steps:
   image: plugins/docker
   settings:
     dry_run: true
-    repo: docker.io/elisaoyj/kops-autoscaler-openstack
+    repo: quay.io/elisaoyj/kops-autoscaler-openstack
     tags: latest
   when:
     branch:
@@ -43,8 +43,8 @@ steps:
   settings:
     password:
       from_secret: docker_password
-    registry: docker.io
-    repo: docker.io/elisaoyj/kops-autoscaler-openstack
+    registry: quay.io
+    repo: quay.io/elisaoyj/kops-autoscaler-openstack
     tags:
     - "${DRONE_COMMIT_SHA}"
     - latest
