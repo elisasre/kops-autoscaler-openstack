@@ -40,6 +40,8 @@ jobs:
     - name: Build and push to registry
       uses: docker/build-push-action@v2
       with:
+        context: src/github.com/${{ github.repository }}
+        file: src/github.com/${{ github.repository }}/Dockerfile
         push: true
         tags: |
           quay.io/elisaoyj/kops-autoscaler-openstack:latest
