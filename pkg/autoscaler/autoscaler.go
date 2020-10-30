@@ -80,6 +80,14 @@ func Run(opts *Options) error {
 		time.Sleep(time.Duration(opts.Sleep) * time.Second)
 		glog.Infof("Executing...\n")
 
+		if osASG.Cloud == nil {
+			cloud, err := cloudup.BuildCloud(cluster)
+			if err != nil {
+				return err
+			}
+			osASG.Cloud = cloud.(openstack.OpenstackCloud)
+		}
+
 		err := osASG.updateApplyCmd(ctx)
 		if err != nil {
 			glog.Errorf("Error updating applycmd %v", err)
@@ -122,14 +130,6 @@ func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
 	var instanceGroups []*kops.InstanceGroup
 	for i := range list.Items {
 		instanceGroups = append(instanceGroups, &list.Items[i])
-	}
-
-	if osASG.Cloud == nil {
-		cloud, err := cloudup.BuildCloud(cluster)
-		if err != nil {
-			return err
-		}
-		osASG.Cloud = cloud.(openstack.OpenstackCloud)
 	}
 
 	osASG.ApplyCmd = &cloudup.ApplyClusterCmd{
