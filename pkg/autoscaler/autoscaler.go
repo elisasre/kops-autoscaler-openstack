@@ -81,6 +81,11 @@ func Run(opts *Options) error {
 		glog.Infof("Executing...\n")
 
 		if osASG.Cloud == nil {
+			cluster, err := osASG.clientset.GetCluster(ctx, osASG.opts.ClusterName)
+			if err != nil {
+				return fmt.Errorf("error initializing cluster %v", err)
+			}
+
 			cloud, err := cloudup.BuildCloud(cluster)
 			if err != nil {
 				return err
