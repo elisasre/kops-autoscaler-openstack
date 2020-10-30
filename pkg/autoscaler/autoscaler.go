@@ -38,7 +38,7 @@ type openstackASG struct {
 	ApplyCmd  *cloudup.ApplyClusterCmd
 	clientset simple.Clientset
 	opts      *Options
-	Cloud     openstack.OpenstackCloud
+	Cloud     fi.Cloud
 }
 
 var (
@@ -90,7 +90,7 @@ func Run(opts *Options) error {
 			if err != nil {
 				return err
 			}
-			osASG.Cloud = cloud.(openstack.OpenstackCloud)
+			osASG.Cloud = cloud
 		}
 
 		err := osASG.updateApplyCmd(ctx)
@@ -138,6 +138,7 @@ func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
 	}
 
 	osASG.ApplyCmd = &cloudup.ApplyClusterCmd{
+		Cloud:          osASG.Cloud,
 		Clientset:      osASG.clientset,
 		Cluster:        cluster,
 		InstanceGroups: instanceGroups,
@@ -152,7 +153,8 @@ func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
 // currently it supports scaling up and down instances
 // we do not use kops update cluster dryrun because it will make lots of API queries against OpenStack.
 func (osASG *openstackASG) dryRun() (bool, error) {
-	instances, err := osASG.Cloud.ListInstances(servers.ListOpts{})
+	osCloud := osASG.Cloud.(openstack.OpenstackCloud)
+	instances, err := osCloud.ListInstances(servers.ListOpts{})
 	if err != nil {
 		return false, err
 	}
