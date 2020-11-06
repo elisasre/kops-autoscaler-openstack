@@ -46,7 +46,7 @@ replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.19.3
 
 replace k8s.io/kubectl => k8s.io/kubectl v0.19.3
 
-replace k8s.io/kops => k8s.io/kops v1.19.0-alpha.5.0.20201030073405-9ef11bb8ae68
+replace k8s.io/kops => k8s.io/kops v1.19.0-alpha.5.0.20201106095050-d13ae5ab36a7
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
