@@ -10,6 +10,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/golang/glog"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -171,6 +172,15 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 		val, ok := instance.Metadata["k8s"]
 		ig, ok2 := instance.Metadata["KopsInstanceGroup"]
 		if ok && ok2 && val == cluster.Name {
+			maintenanceVal, ok3 := instance.Metadata["maintenance"]
+			if instance.Status == "SHUTOFF" && (!ok3 || maintenanceVal != "true") {
+				startErr := startstop.Start(osCloud.ComputeClient(), instance.ID).ExtractErr()
+				if startErr != nil {
+					glog.Errorf("Could not start server %v", startErr)
+				} else {
+					glog.Infof("Starting server %s (%s)", instance.Name, instance.ID)
+				}
+			}
 			osInstances.WithLabelValues(instance.Name, instance.ID, instance.Status).Set(1)
 			currentVal, found := currentIGs[ig]
 			if found {
