@@ -1,6 +1,6 @@
 module github.com/ElisaOyj/kops-autoscaler-openstack
 
-go 1.14
+go 1.15
 
 replace k8s.io/kubernetes => k8s.io/kubernetes v1.19.3
 
