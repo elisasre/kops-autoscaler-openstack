@@ -46,7 +46,7 @@ replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.19.3
 
 replace k8s.io/kubectl => k8s.io/kubectl v0.19.3
 
-replace k8s.io/kops => k8s.io/kops v1.19.0-alpha.5.0.20201111101548-74c7a7a75d67
+replace k8s.io/kops => k8s.io/kops v1.19.0-alpha.5.0.20201124071501-97336181bd1d
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.11.1 // indirect
 	github.com/pkg/sftp v1.10.1 // indirect
 	github.com/prometheus/client_golang v1.7.1
-	github.com/spf13/cobra v1.0.0
-	k8s.io/apimachinery v0.19.3
+	github.com/spf13/cobra v1.1.1
+	k8s.io/apimachinery v0.20.0-beta.2
 	k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb
 )
