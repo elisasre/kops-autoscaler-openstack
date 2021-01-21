@@ -46,19 +46,15 @@ replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.19.3
 
 replace k8s.io/kubectl => k8s.io/kubectl v0.19.3
 
-replace k8s.io/kops => k8s.io/kops v1.19.0-alpha.5.0.20201124071501-97336181bd1d
+replace k8s.io/kops => k8s.io/kops v1.20.0-alpha.1.0.20210121043100-08b47801a5ae
 
 require (
-	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/coreos/bbolt v1.3.3 // indirect
-	github.com/digitalocean/godo v1.20.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/gophercloud/gophercloud v0.11.1-0.20200518183226-7aec46f32c19
+	github.com/gophercloud/gophercloud v0.15.0
 	github.com/grpc-ecosystem/grpc-gateway v1.11.1 // indirect
-	github.com/pkg/sftp v1.10.1 // indirect
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/cobra v1.1.1
-	k8s.io/apimachinery v0.20.0-beta.2
-	k8s.io/kops v1.4.2-0.20190908190207-7c84c48481eb
+	k8s.io/apimachinery v0.20.0
+	k8s.io/kops v1.20.0-alpha.1
 )
