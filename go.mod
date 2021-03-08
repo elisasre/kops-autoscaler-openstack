@@ -46,7 +46,7 @@ replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.19.3
 
 replace k8s.io/kubectl => k8s.io/kubectl v0.19.3
 
-replace k8s.io/kops => k8s.io/kops v1.20.0-alpha.2.0.20210208192819-4507be8e1353
+replace k8s.io/kops => k8s.io/kops v1.20.0-beta.1.0.20210306123741-3266d8cd07e9
 
 require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
@@ -54,6 +54,6 @@ require (
 	github.com/gophercloud/gophercloud v0.15.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/cobra v1.1.1
-	k8s.io/apimachinery v0.20.0
+	k8s.io/apimachinery v0.20.4
 	k8s.io/kops v1.20.0-alpha.1
 )
