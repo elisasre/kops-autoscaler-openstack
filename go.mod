@@ -51,9 +51,9 @@ replace k8s.io/kops => k8s.io/kops v1.20.0-beta.1.0.20210306123741-3266d8cd07e9
 require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/gophercloud/gophercloud v0.15.0
-	github.com/prometheus/client_golang v1.7.1
-	github.com/spf13/cobra v1.1.1
+	github.com/gophercloud/gophercloud v0.17.0
+	github.com/prometheus/client_golang v1.10.0
+	github.com/spf13/cobra v1.1.3
 	k8s.io/apimachinery v0.20.4
 	k8s.io/kops v1.20.0-alpha.1
 )
