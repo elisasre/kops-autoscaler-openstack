@@ -17,7 +17,7 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.22.1
 	k8s.io/cri-api => k8s.io/cri-api v0.22.1
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.22.1
-	k8s.io/kops => k8s.io/kops v1.22.0-beta.1.0.20210831150536-5b17b3640c17
+	k8s.io/kops => k8s.io/kops v1.22.0-beta.1.0.20210905095319-02a0b437a2a0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.1
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.22.1
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.22.1
@@ -37,7 +37,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/spf13/cobra v1.2.1
 	k8s.io/apimachinery v0.22.1
-	k8s.io/kops v1.22.0-beta.1.0.20210831150536-5b17b3640c17
+	k8s.io/kops v1.22.0-beta.1.0.20210905095319-02a0b437a2a0
 )
 
 require (
@@ -138,7 +138,7 @@ require (
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2 // indirect
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
@@ -162,7 +162,7 @@ require (
 	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	k8s.io/legacy-cloud-providers v0.22.0 // indirect
-	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471 // indirect
+	k8s.io/utils v0.0.0-20210802155522-efc7438f0176 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
