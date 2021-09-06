@@ -17,7 +17,7 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.22.1
 	k8s.io/cri-api => k8s.io/cri-api v0.22.1
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.22.1
-	k8s.io/kops => k8s.io/kops v1.22.0-beta.1.0.20210905095319-02a0b437a2a0
+	k8s.io/kops => k8s.io/kops v1.22.0-beta.1.0.20210906113229-b9c64c72e05f
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.1
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.22.1
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.22.1
@@ -37,7 +37,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/spf13/cobra v1.2.1
 	k8s.io/apimachinery v0.22.1
-	k8s.io/kops v1.22.0-beta.1.0.20210905095319-02a0b437a2a0
+	k8s.io/kops v1.22.0-beta.1.0.20210906113229-b9c64c72e05f
 )
 
 require (
