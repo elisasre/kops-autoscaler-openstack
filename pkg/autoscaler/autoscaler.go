@@ -310,11 +310,11 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 		}
 		glog.Infof("Load balancer statistics collected %s", lb.Name)
 
-		lbActiveConnections.WithLabelValues(lb.ID, lb.Name).Set(float64(stats.ActiveConnections))
-		lbBytesIn.WithLabelValues(lb.ID, lb.Name).Set(float64(stats.BytesIn))
-		lbBytesOut.WithLabelValues(lb.ID, lb.Name).Set(float64(stats.BytesOut))
-		lbRequestErros.WithLabelValues(lb.ID, lb.Name).Set(float64(stats.RequestErrors))
-		lbTotalConnections.WithLabelValues(lb.ID, lb.Name).Set(float64(stats.TotalConnections))
+		lbActiveConnections.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.ActiveConnections))
+		lbBytesIn.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.BytesIn))
+		lbBytesOut.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.BytesOut))
+		lbRequestErros.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.RequestErrors))
+		lbTotalConnections.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.TotalConnections))
 	}
 
 	return nil
