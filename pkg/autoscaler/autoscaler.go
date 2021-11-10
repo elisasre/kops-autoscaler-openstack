@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	// import pprof package, needed for debugging
@@ -111,6 +112,12 @@ func Run(opts *Options) error {
 
 	http.Handle("/metrics", promhttp.Handler())
 	go http.ListenAndServe(":2112", nil)
+
+	prometheus.MustRegister(lbActiveConnections)
+	prometheus.MustRegister(lbBytesIn)
+	prometheus.MustRegister(lbBytesOut)
+	prometheus.MustRegister(lbRequestErros)
+	prometheus.MustRegister(lbTotalConnections)
 
 	fails := 0
 	for {
@@ -290,7 +297,7 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 		return err
 	}
 
-	glog.Infof("Found %s load balancers", len(allLoadBalancers))
+	glog.Infof("Found %s load balancers", strconv.Itoa(len(allLoadBalancers)))
 	if len(allLoadBalancers) == 0 {
 		return nil
 	}
