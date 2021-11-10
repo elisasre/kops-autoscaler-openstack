@@ -19,6 +19,7 @@ Flags:
       --access-key string        S3 access key (default "test")
       --custom-endpoint string   S3 custom endpoint
   -h, --help                     help for kops-autoscaling-openstack
+      --load-balancer-metrics    collect load balancer metrics (default false)
       --name string              Name of the kubernetes kops cluster (default "")
       --secret-key string        S3 secret key (default "")
       --sleep int                Sleep between executions (default 45)
