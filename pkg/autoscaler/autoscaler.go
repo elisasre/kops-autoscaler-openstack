@@ -160,11 +160,9 @@ func Run(opts *Options) error {
 			}
 		}
 
+		// Collecting load balancer metrics is not critical. Don't want to fail on error.
 		if opts.LoadBalancerMetrics {
 			err = osASG.getLoadBalancerMetrics()
-			if err != nil {
-				glog.Errorf("Error getting load balancer metrics %v", err)
-			}
 		}
 
 		fails = 0
@@ -267,30 +265,38 @@ func (osASG *openstackASG) update(ctx context.Context) error {
 func (osASG *openstackASG) getLoadBalancerMetrics() error {
 	authOpts, err := openstackv2.AuthOptionsFromEnv()
 	if err != nil {
+		glog.Errorf("Error building auth options from env %v", err)
 		return err
 	}
 	provider, err := openstackv2.AuthenticatedClient(authOpts)
 	if err != nil {
+		glog.Errorf("Error building openstack authenticated client %v", err)
 		return err
 	}
-	networkClient, err := openstackv2.NewNetworkV2(provider, gophercloud.EndpointOpts{
-		Region: "RegionOne",
-	})
+	loadBalancerClient, err := openstackv2.NewLoadBalancerV2(provider, gophercloud.EndpointOpts{})
 	if err != nil {
+		glog.Errorf("Error building openstack load balancer client %v", err)
 		return err
 	}
 
-	allPages, err := loadbalancers.List(networkClient, loadbalancers.ListOpts{}).AllPages()
+	allPages, err := loadbalancers.List(loadBalancerClient, loadbalancers.ListOpts{}).AllPages()
 	if err != nil {
+		glog.Errorf("Error listing load balancer pages %v", err)
 		return err
 	}
-	loadBalancers, err := loadbalancers.ExtractLoadBalancers(allPages)
+	allLoadBalancers, err := loadbalancers.ExtractLoadBalancers(allPages)
 	if err != nil {
+		glog.Errorf("Error extracting load balancers %v", err)
 		return err
 	}
 
-	for _, lb := range loadBalancers {
-		stats, err := loadbalancers.GetStats(networkClient, lb.ID).Extract()
+	glog.Infof("Found %s load balancers", len(allLoadBalancers))
+	if len(allLoadBalancers) == 0 {
+		return nil
+	}
+
+	for _, lb := range allLoadBalancers {
+		stats, err := loadbalancers.GetStats(loadBalancerClient, lb.ID).Extract()
 		if err != nil {
 			glog.Errorf("Error getting load balancer stats %v", err)
 			continue
