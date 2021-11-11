@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
+
 	// import pprof package, needed for debugging
 	_ "net/http/pprof"
 
 	"github.com/golang/glog"
+	"github.com/gophercloud/gophercloud"
+	openstackv2 "github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/loadbalancers"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -27,12 +32,13 @@ import (
 
 // Options contains startup variables from cobra cmd
 type Options struct {
-	Sleep          int
-	StateStore     string
-	AccessKey      string
-	SecretKey      string
-	CustomEndpoint string
-	ClusterName    string
+	Sleep               int
+	LoadBalancerMetrics bool
+	StateStore          string
+	AccessKey           string
+	SecretKey           string
+	CustomEndpoint      string
+	ClusterName         string
 }
 
 type openstackASG struct {
@@ -49,6 +55,41 @@ var (
 			Help: "Openstack instance",
 		},
 		[]string{"name", "id", "status"},
+	)
+	lbActiveConnections = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "load_balancer_active_connections",
+			Help: "Load balancer active connections",
+		},
+		[]string{"name", "id"},
+	)
+	lbBytesIn = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "load_balancer_bytes_in",
+			Help: "Load balancer bytes in",
+		},
+		[]string{"name", "id"},
+	)
+	lbBytesOut = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "load_balancer_bytes_out",
+			Help: "Load balancer bytes out",
+		},
+		[]string{"name", "id"},
+	)
+	lbRequestErros = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "load_balancer_request_errors",
+			Help: "Load balancer request errors",
+		},
+		[]string{"name", "id"},
+	)
+	lbTotalConnections = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "load_balancer_total_connections",
+			Help: "Load balancer total connections",
+		},
+		[]string{"name", "id"},
 	)
 )
 
@@ -71,6 +112,12 @@ func Run(opts *Options) error {
 
 	http.Handle("/metrics", promhttp.Handler())
 	go http.ListenAndServe(":2112", nil)
+
+	prometheus.MustRegister(lbActiveConnections)
+	prometheus.MustRegister(lbBytesIn)
+	prometheus.MustRegister(lbBytesOut)
+	prometheus.MustRegister(lbRequestErros)
+	prometheus.MustRegister(lbTotalConnections)
 
 	fails := 0
 	for {
@@ -119,6 +166,12 @@ func Run(opts *Options) error {
 				continue
 			}
 		}
+
+		// Collecting load balancer metrics is not critical. Don't want to fail on error.
+		if opts.LoadBalancerMetrics {
+			osASG.getLoadBalancerMetrics()
+		}
+
 		fails = 0
 	}
 }
@@ -213,5 +266,56 @@ func (osASG *openstackASG) update(ctx context.Context) error {
 	if err := osASG.ApplyCmd.Run(ctx); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (osASG *openstackASG) getLoadBalancerMetrics() error {
+	authOpts, err := openstackv2.AuthOptionsFromEnv()
+	if err != nil {
+		glog.Errorf("Error building auth options from env %v", err)
+		return err
+	}
+	provider, err := openstackv2.AuthenticatedClient(authOpts)
+	if err != nil {
+		glog.Errorf("Error building openstack authenticated client %v", err)
+		return err
+	}
+	loadBalancerClient, err := openstackv2.NewLoadBalancerV2(provider, gophercloud.EndpointOpts{})
+	if err != nil {
+		glog.Errorf("Error building openstack load balancer client %v", err)
+		return err
+	}
+
+	allPages, err := loadbalancers.List(loadBalancerClient, loadbalancers.ListOpts{}).AllPages()
+	if err != nil {
+		glog.Errorf("Error listing load balancer pages %v", err)
+		return err
+	}
+	allLoadBalancers, err := loadbalancers.ExtractLoadBalancers(allPages)
+	if err != nil {
+		glog.Errorf("Error extracting load balancers %v", err)
+		return err
+	}
+
+	glog.Infof("Found %s load balancers", strconv.Itoa(len(allLoadBalancers)))
+	if len(allLoadBalancers) == 0 {
+		return nil
+	}
+
+	for _, lb := range allLoadBalancers {
+		stats, err := loadbalancers.GetStats(loadBalancerClient, lb.ID).Extract()
+		if err != nil {
+			glog.Errorf("Error getting load balancer stats %v", err)
+			continue
+		}
+		glog.Infof("Load balancer statistics collected %s", lb.Name)
+
+		lbActiveConnections.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.ActiveConnections))
+		lbBytesIn.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.BytesIn))
+		lbBytesOut.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.BytesOut))
+		lbRequestErros.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.RequestErrors))
+		lbTotalConnections.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.TotalConnections))
+	}
+
 	return nil
 }
