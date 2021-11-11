@@ -169,7 +169,7 @@ func Run(opts *Options) error {
 
 		// Collecting load balancer metrics is not critical. Don't want to fail on error.
 		if opts.LoadBalancerMetrics {
-			err = osASG.getLoadBalancerMetrics()
+			osASG.getLoadBalancerMetrics()
 		}
 
 		fails = 0
