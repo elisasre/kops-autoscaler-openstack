@@ -36,4 +36,4 @@ build-image: build-linux-amd64
 	docker build -t $(IMAGE):latest .
 
 run: build
-	./bin/$(OPERATOR_NAME) --sleep 10
+	./bin/$(OPERATOR_NAME) --loglevel 4 --sleep 10
