@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	// import pprof package, needed for debugging
@@ -32,6 +31,7 @@ import (
 
 // Options contains startup variables from cobra cmd
 type Options struct {
+	LogLevel            string
 	Sleep               int
 	LoadBalancerMetrics bool
 	StateStore          string
@@ -126,7 +126,7 @@ func Run(opts *Options) error {
 		}
 		ctx := context.Background()
 		time.Sleep(time.Duration(opts.Sleep) * time.Second)
-		glog.Infof("Executing...\n")
+		glog.V(2).Infof("Executing...\n")
 
 		if osASG.Cloud == nil {
 			cluster, err := osASG.clientset.GetCluster(ctx, osASG.opts.ClusterName)
@@ -231,7 +231,7 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 				if startErr != nil {
 					glog.Errorf("Could not start server %v", startErr)
 				} else {
-					glog.Infof("Starting server %s (%s)", instance.Name, instance.ID)
+					glog.V(2).Infof("Starting server %s (%s)", instance.Name, instance.ID)
 				}
 			}
 			osInstances.WithLabelValues(instance.Name, instance.ID, instance.Status).Set(1)
@@ -246,11 +246,11 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 
 	for _, ig := range instanceGroups {
 		if fi.Int32Value(ig.Spec.MinSize) < currentIGs[ig.Name] {
-			glog.Infof("Scaling down running update --yes")
+			glog.V(2).Infof("Scaling down running update --yes")
 			return true, nil
 		}
 		if fi.Int32Value(ig.Spec.MinSize) > currentIGs[ig.Name] {
-			glog.Infof("Scaling up running update --yes")
+			glog.V(2).Infof("Scaling up running update --yes")
 			return true, nil
 		}
 	}
@@ -297,18 +297,13 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 		return err
 	}
 
-	glog.Infof("Found %s load balancers", strconv.Itoa(len(allLoadBalancers)))
-	if len(allLoadBalancers) == 0 {
-		return nil
-	}
-
 	for _, lb := range allLoadBalancers {
 		stats, err := loadbalancers.GetStats(loadBalancerClient, lb.ID).Extract()
 		if err != nil {
 			glog.Errorf("Error getting load balancer stats %v", err)
 			continue
 		}
-		glog.Infof("Load balancer statistics collected %s", lb.Name)
+		glog.V(4).Infof("Load balancer statistics collected %s", lb.Name)
 
 		lbActiveConnections.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.ActiveConnections))
 		lbBytesIn.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.BytesIn))

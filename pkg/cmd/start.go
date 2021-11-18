@@ -29,7 +29,11 @@ func Execute() {
 		Short: "Provide autoscaling capability to kops openstack",
 		Long:  `Provide autoscaling capability to kops openstack`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := validate(options)
+			err := flag.Set("v", options.LogLevel)
+			if err != nil {
+				glog.Error(err)
+			}
+			err = validate(options)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "\n%v\n", err)
 				os.Exit(1)
@@ -45,6 +49,7 @@ func Execute() {
 		},
 	}
 
+	rootCmd.Flags().StringVar(&options.LogLevel, "loglevel", "2", "Log level")
 	rootCmd.Flags().IntVar(&options.Sleep, "sleep", 300, "Sleep between executions")
 	rootCmd.Flags().BoolVar(&options.LoadBalancerMetrics, "load-balancer-metrics", false, "Collect load balancer metrics")
 	rootCmd.Flags().StringVar(&options.StateStore, "state-store", os.Getenv("KOPS_STATE_STORE"), "KOPS State store")
