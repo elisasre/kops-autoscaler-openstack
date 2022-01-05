@@ -4,7 +4,11 @@ go 1.17
 
 replace (
 	github.com/containerd/containerd => github.com/containerd/containerd v1.5.7
+	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/docker/cli => github.com/docker/cli v20.10.12+incompatible
 	github.com/google/go-containerregistry => github.com/google/go-containerregistry v0.5.1
+	github.com/miekg/dns => github.com/miekg/dns v1.1.46-0.20211228135238-0544c8bb118e
+	github.com/satori/go.uuid => github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	k8s.io/api => k8s.io/api v0.23.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.23.0
