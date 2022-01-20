@@ -304,7 +304,7 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 		glog.Errorf("Error extracting load balancers %v", err)
 		return err
 	}
-
+	lbMetric.Reset()
 	for _, lb := range allLoadBalancers {
 		lbMetric.WithLabelValues(lb.ID, lb.Name, lb.ProvisioningStatus, lb.OperatingStatus).Set(float64(1))
 		stats, err := loadbalancers.GetStats(loadBalancerClient, lb.ID).Extract()
