@@ -93,7 +93,7 @@ var (
 	)
 	lbMetric = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "Shows the OpenStack loadbalancers",
+			Name: "openstack_loadbalancer",
 			Help: "Shows the OpenStack loadbalancers",
 		},
 		[]string{"id", "name", "provisioning_status", "operating_status"},
