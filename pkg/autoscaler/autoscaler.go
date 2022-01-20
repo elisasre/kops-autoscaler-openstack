@@ -91,6 +91,13 @@ var (
 		},
 		[]string{"name", "id"},
 	)
+	lbMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "Shows the OpenStack loadbalancers",
+			Help: "Shows the OpenStack loadbalancers",
+		},
+		[]string{"id", "name", "provisioning_status", "operating_status"},
+	)
 )
 
 // Run will execute cluster check in loop periodically
@@ -118,6 +125,7 @@ func Run(opts *Options) error {
 	prometheus.MustRegister(lbBytesOut)
 	prometheus.MustRegister(lbRequestErros)
 	prometheus.MustRegister(lbTotalConnections)
+	prometheus.MustRegister(lbMetric)
 
 	fails := 0
 	for {
@@ -298,6 +306,7 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 	}
 
 	for _, lb := range allLoadBalancers {
+		lbMetric.WithLabelValues(lb.ID, lb.Name, lb.ProvisioningStatus, lb.OperatingStatus).Set(float64(1))
 		stats, err := loadbalancers.GetStats(loadBalancerClient, lb.ID).Extract()
 		if err != nil {
 			glog.Errorf("Error getting load balancer stats %v", err)
