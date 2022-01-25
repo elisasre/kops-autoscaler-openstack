@@ -24,7 +24,7 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.23.1
 	k8s.io/cri-api => k8s.io/cri-api v0.23.1
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.23.1
-	k8s.io/kops => k8s.io/kops v1.23.0-beta.1.0.20220118123511-897ceadfc79a
+	k8s.io/kops => github.com/zetaab/kops v1.4.2-0.20220125110109-f229ee9eea6c
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.23.1
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.23.1
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.23.1
@@ -44,7 +44,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/spf13/cobra v1.2.1
 	k8s.io/apimachinery v0.23.1
-	k8s.io/kops v1.23.0-beta.1.0.20211212082558-31cd3e70ba10
+	k8s.io/kops v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -70,7 +70,7 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1059 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.42.11 // indirect
+	github.com/aws/aws-sdk-go v1.42.37 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -149,8 +149,8 @@ require (
 	github.com/spotinst/spotinst-sdk-go v1.85.0 // indirect
 	github.com/zclconf/go-cty v1.8.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e // indirect
-	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
+	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20211110154304-99a53858aa08 // indirect
