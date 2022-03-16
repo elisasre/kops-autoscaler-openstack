@@ -23,14 +23,14 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.23.4
 	k8s.io/cri-api => k8s.io/cri-api v0.23.4
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.23.4
-	k8s.io/kops => k8s.io/kops v1.24.0-alpha.2.0.20220224081934-38724fbe2131
+	k8s.io/kops => k8s.io/kops v1.24.0-alpha.2.0.20220316135350-6151a11e6365
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.23.4
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.23.4
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.23.4
 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.23.4
 	k8s.io/kubectl => k8s.io/kubectl v0.23.4
 	k8s.io/kubelet => k8s.io/kubelet v0.23.4
-	k8s.io/kubernetes => k8s.io/kubernetes v1.23.1
+	k8s.io/kubernetes => k8s.io/kubernetes v1.23.4
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.23.4
 	k8s.io/metrics => k8s.io/metrics v0.23.4
 	k8s.io/mount-utils => k8s.io/mount-utils v0.23.4
@@ -41,8 +41,8 @@ replace (
 require (
 	github.com/golang/glog v1.0.0
 	github.com/gophercloud/gophercloud v0.24.0
-	github.com/prometheus/client_golang v1.11.0
-	github.com/spf13/cobra v1.2.1
+	github.com/prometheus/client_golang v1.12.1
+	github.com/spf13/cobra v1.4.0
 	k8s.io/apimachinery v0.23.4
 	k8s.io/kops v0.0.0-00010101000000-000000000000
 )
@@ -69,12 +69,12 @@ require (
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.42.37 // indirect
+	github.com/aws/aws-sdk-go v1.43.11 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
-	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/digitalocean/godo v1.65.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
@@ -135,8 +135,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/sftp v1.13.4 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.28.0 // indirect
-	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/prometheus/common v0.32.1 // indirect
+	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
@@ -148,11 +148,11 @@ require (
 	github.com/zclconf/go-cty v1.8.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
-	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/api v0.57.0 // indirect
