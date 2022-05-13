@@ -20,7 +20,7 @@ gofmt:
 	./hack/gofmt.sh
 
 ensure:
-	GO111MODULE=on go mod tidy -compat=1.17
+	GO111MODULE=on go mod tidy
 	GO111MODULE=on go mod vendor
 
 build-linux-amd64:
