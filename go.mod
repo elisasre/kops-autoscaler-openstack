@@ -3,13 +3,6 @@ module github.com/ElisaOyj/kops-autoscaler-openstack
 go 1.18
 
 replace (
-	github.com/containerd/containerd => github.com/containerd/containerd v1.5.9
-	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
-	github.com/miekg/dns => github.com/miekg/dns v1.1.46-0.20211228135238-0544c8bb118e
-	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.3
-	github.com/satori/go.uuid => github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	k8s.io/api => k8s.io/api v0.24.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.24.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.24.0
@@ -24,7 +17,7 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.24.0
 	k8s.io/cri-api => k8s.io/cri-api v0.24.0
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.24.0
-	k8s.io/kops => k8s.io/kops v1.24.0-alpha.4.0.20220513023549-e59a6003ff20
+	k8s.io/kops => k8s.io/kops v1.24.0-alpha.5.0.20220522081201-57e8b784e2b6
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.24.0
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.24.0
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.24.0
