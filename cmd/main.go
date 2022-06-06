@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ElisaOyj/kops-autoscaler-openstack/pkg/cmd"
+	"github.com/elisasre/kops-autoscaler-openstack/pkg/cmd"
 )
 
 func main() {

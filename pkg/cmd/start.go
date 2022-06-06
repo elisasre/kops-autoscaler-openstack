@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ElisaOyj/kops-autoscaler-openstack/pkg/autoscaler"
+	"github.com/elisasre/kops-autoscaler-openstack/pkg/autoscaler"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 )
