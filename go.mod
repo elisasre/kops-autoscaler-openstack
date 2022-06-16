@@ -17,7 +17,7 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.24.1
 	k8s.io/cri-api => k8s.io/cri-api v0.24.1
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.24.1
-	k8s.io/kops => k8s.io/kops v1.24.0-alpha.5.0.20220522081201-57e8b784e2b6
+	k8s.io/kops => k8s.io/kops v1.24.0-beta.2.0.20220616142848-32b95d2a9ef4
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.24.1
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.24.1
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.24.1
@@ -164,7 +164,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spotinst/spotinst-sdk-go v1.118.0 // indirect
+	github.com/spotinst/spotinst-sdk-go v1.120.0 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.7.1 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
