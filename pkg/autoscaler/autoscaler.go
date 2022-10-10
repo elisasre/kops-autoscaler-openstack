@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	// import pprof package, needed for debugging
@@ -99,12 +100,13 @@ var (
 		},
 		[]string{"name", "id", "provisioning_status", "operating_status"},
 	)
-	lbMemberWeight = prometheus.NewGaugeVec(
+	lbPoolMember = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "load_balancer_member_weight",
-			Help: "Load balancer member weight",
+			Name: "load_balancer_pool_member",
+			Help: "Load balancer pool member",
 		},
-		[]string{"name", "id", "pool_name", "pool_id", "provisioning_status", "operating_status"},
+		[]string{"name", "id", "pool_name", "pool_id", "load_balancer_id",
+			"provisioning_status", "operating_status", "weight"},
 	)
 )
 
@@ -134,7 +136,7 @@ func Run(opts *Options) error {
 	prometheus.MustRegister(lbRequestErros)
 	prometheus.MustRegister(lbTotalConnections)
 	prometheus.MustRegister(lbStatus)
-	prometheus.MustRegister(lbMemberWeight)
+	prometheus.MustRegister(lbPoolMember)
 
 	fails := 0
 	for {
@@ -374,7 +376,8 @@ func (osASG *openstackASG) getMemberMetrics(client *gophercloud.ServiceClient) e
 		glog.V(4).Infof("Load balancer member status collected for pool %s", pool.Name)
 
 		for _, member := range allMembers {
-			lbMemberWeight.WithLabelValues(member.Name, member.ID, pool.Name, pool.ID, member.ProvisioningStatus, member.OperatingStatus).Set(float64(member.Weight))
+			lbPoolMember.WithLabelValues(member.Name, member.ID, pool.Name, pool.ID, pool.Loadbalancers[0].ID,
+				member.ProvisioningStatus, member.OperatingStatus, strconv.Itoa(member.Weight)).Set(float64(1))
 		}
 	}
 
