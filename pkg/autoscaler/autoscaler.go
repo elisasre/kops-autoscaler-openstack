@@ -16,6 +16,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/loadbalancers"
+	"github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/pools"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -91,12 +92,19 @@ var (
 		},
 		[]string{"name", "id"},
 	)
-	lbMetric = prometheus.NewGaugeVec(
+	lbStatus = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "openstack_loadbalancer",
 			Help: "Shows the OpenStack loadbalancers",
 		},
-		[]string{"id", "name", "provisioning_status", "operating_status"},
+		[]string{"name", "id", "provisioning_status", "operating_status"},
+	)
+	lbMemberWeight = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "load_balancer_member_weight",
+			Help: "Load balancer member weight",
+		},
+		[]string{"name", "id", "pool_name", "pool_id", "provisioning_status", "operating_status"},
 	)
 )
 
@@ -125,7 +133,8 @@ func Run(opts *Options) error {
 	prometheus.MustRegister(lbBytesOut)
 	prometheus.MustRegister(lbRequestErros)
 	prometheus.MustRegister(lbTotalConnections)
-	prometheus.MustRegister(lbMetric)
+	prometheus.MustRegister(lbStatus)
+	prometheus.MustRegister(lbMemberWeight)
 
 	fails := 0
 	for {
@@ -177,7 +186,7 @@ func Run(opts *Options) error {
 
 		// Collecting load balancer metrics is not critical. Don't want to fail on error.
 		if opts.LoadBalancerMetrics {
-			osASG.getLoadBalancerMetrics()
+			osASG.enableMetrics()
 		}
 
 		fails = 0
@@ -277,7 +286,7 @@ func (osASG *openstackASG) update(ctx context.Context) error {
 	return nil
 }
 
-func (osASG *openstackASG) getLoadBalancerMetrics() error {
+func (osASG *openstackASG) enableMetrics() error {
 	authOpts, err := openstackv2.AuthOptionsFromEnv()
 	if err != nil {
 		glog.Errorf("Error building auth options from env %v", err)
@@ -288,13 +297,27 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 		glog.Errorf("Error building openstack authenticated client %v", err)
 		return err
 	}
-	loadBalancerClient, err := openstackv2.NewLoadBalancerV2(provider, gophercloud.EndpointOpts{})
+	client, err := openstackv2.NewLoadBalancerV2(provider, gophercloud.EndpointOpts{})
 	if err != nil {
 		glog.Errorf("Error building openstack load balancer client %v", err)
 		return err
 	}
 
-	allPages, err := loadbalancers.List(loadBalancerClient, loadbalancers.ListOpts{}).AllPages()
+	err = osASG.getLoadBalancerMetrics(client)
+	if err != nil {
+		return err
+	}
+
+	err = osASG.getMemberMetrics(client)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (osASG *openstackASG) getLoadBalancerMetrics(client *gophercloud.ServiceClient) error {
+	allPages, err := loadbalancers.List(client, loadbalancers.ListOpts{}).AllPages()
 	if err != nil {
 		glog.Errorf("Error listing load balancer pages %v", err)
 		return err
@@ -304,10 +327,11 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 		glog.Errorf("Error extracting load balancers %v", err)
 		return err
 	}
-	lbMetric.Reset()
+
+	lbStatus.Reset()
 	for _, lb := range allLoadBalancers {
-		lbMetric.WithLabelValues(lb.ID, lb.Name, lb.ProvisioningStatus, lb.OperatingStatus).Set(float64(1))
-		stats, err := loadbalancers.GetStats(loadBalancerClient, lb.ID).Extract()
+		lbStatus.WithLabelValues(lb.Name, lb.ID, lb.ProvisioningStatus, lb.OperatingStatus).Set(float64(1))
+		stats, err := loadbalancers.GetStats(client, lb.ID).Extract()
 		if err != nil {
 			glog.Errorf("Error getting load balancer stats %v", err)
 			continue
@@ -319,6 +343,39 @@ func (osASG *openstackASG) getLoadBalancerMetrics() error {
 		lbBytesOut.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.BytesOut))
 		lbRequestErros.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.RequestErrors))
 		lbTotalConnections.WithLabelValues(lb.Name, lb.ID).Set(float64(stats.TotalConnections))
+	}
+
+	return nil
+}
+
+func (osASG *openstackASG) getMemberMetrics(client *gophercloud.ServiceClient) error {
+	allPages, err := pools.List(client, pools.ListOpts{}).AllPages()
+	if err != nil {
+		glog.Errorf("Error listing load balancer pool pages %v", err)
+		return err
+	}
+	allPools, err := pools.ExtractPools(allPages)
+	if err != nil {
+		glog.Errorf("Error extracting load balancer pools %v", err)
+		return err
+	}
+
+	for _, pool := range allPools {
+		allPages, err := pools.ListMembers(client, pool.ID, pools.ListMembersOpts{}).AllPages()
+		if err != nil {
+			glog.Errorf("Error listing load balancer member pages %v", err)
+			return err
+		}
+		allMembers, err := pools.ExtractMembers(allPages)
+		if err != nil {
+			glog.Errorf("Error extracting load balancer members %v", err)
+			return err
+		}
+		glog.V(4).Infof("Load balancer member status collected for pool %s", pool.Name)
+
+		for _, member := range allMembers {
+			lbMemberWeight.WithLabelValues(member.Name, member.ID, pool.Name, pool.ID, member.ProvisioningStatus, member.OperatingStatus).Set(float64(member.Weight))
+		}
 	}
 
 	return nil
