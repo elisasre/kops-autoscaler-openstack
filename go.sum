@@ -1639,8 +1639,8 @@ k8s.io/csi-translation-lib v0.25.2/go.mod h1:q2OfTClapLeLlFeQBOklmyP/w4I2hvBZg6O
 k8s.io/klog/v2 v2.0.0/go.mod h1:PBfzABfn139FHAV07az/IF9Wp1bkk3vpT2XSJ76fSDE=
 k8s.io/klog/v2 v2.80.1 h1:atnLQ121W371wYYFawwYx1aEY2eUfs4l3J72wtgAwV4=
 k8s.io/klog/v2 v2.80.1/go.mod h1:y1WjHnz7Dj687irZUWR/WLkLc5N1YHtjLdmgWjndZn0=
-k8s.io/kops v1.25.2-0.20221010101520-2caacf24a5b3 h1:8piIewTU4W9+qMbizV5SfrjAdQWgT/21Ibe+tMkwMBo=
-k8s.io/kops v1.25.2-0.20221010101520-2caacf24a5b3/go.mod h1:xTWLLCq+oAUUEEbs1fFYtyTRn7dY9KFKKO+y1OfjVvo=
+k8s.io/kops v1.25.2-0.20221011075902-a31574d2c939 h1:reP2Dvx0sc4NvUUrbecRpCSquFGL6WqjzhX9JCJuvds=
+k8s.io/kops v1.25.2-0.20221011075902-a31574d2c939/go.mod h1:xTWLLCq+oAUUEEbs1fFYtyTRn7dY9KFKKO+y1OfjVvo=
 k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 h1:MQ8BAZPZlWk3S9K4a9NCkIFQtZShWqoha7snGixVgEA=
 k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1/go.mod h1:C/N6wCaBHeBHkHUesQOQy2/MZqGgMAFPqGsGQLdbZBU=
 k8s.io/legacy-cloud-providers v0.25.2 h1:Yt9m20ChxFW9o/90JDphUjAP9Axs6rQk878AUj/5cw8=
