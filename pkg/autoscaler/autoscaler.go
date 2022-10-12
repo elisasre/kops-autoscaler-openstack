@@ -362,6 +362,7 @@ func (osASG *openstackASG) getMemberMetrics(client *gophercloud.ServiceClient) e
 		return err
 	}
 
+	lbPoolMember.Reset()
 	for _, pool := range allPools {
 		allPages, err := pools.ListMembers(client, pool.ID, pools.ListMembersOpts{}).AllPages()
 		if err != nil {
