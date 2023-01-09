@@ -264,11 +264,11 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 	}
 
 	for _, ig := range instanceGroups {
-		if fi.Int32Value(ig.Spec.MinSize) < currentIGs[ig.Name] {
+		if fi.ValueOf(ig.Spec.MinSize) < currentIGs[ig.Name] {
 			glog.V(2).Infof("Scaling down running update --yes")
 			return true, nil
 		}
-		if fi.Int32Value(ig.Spec.MinSize) > currentIGs[ig.Name] {
+		if fi.ValueOf(ig.Spec.MinSize) > currentIGs[ig.Name] {
 			glog.V(2).Infof("Scaling up running update --yes")
 			return true, nil
 		}
