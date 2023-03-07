@@ -211,13 +211,14 @@ func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
 	}
 
 	osASG.ApplyCmd = &cloudup.ApplyClusterCmd{
-		Cloud:          osASG.Cloud,
-		Clientset:      osASG.clientset,
-		Cluster:        cluster,
-		InstanceGroups: instanceGroups,
-		Phase:          "",
-		TargetName:     cloudup.TargetDryRun,
-		OutDir:         "out",
+		Cloud:              osASG.Cloud,
+		Clientset:          osASG.clientset,
+		Cluster:            cluster,
+		InstanceGroups:     instanceGroups,
+		Phase:              "",
+		TargetName:         cloudup.TargetDryRun,
+		OutDir:             "out",
+		AllowKopsDowngrade: true,
 	}
 	return nil
 }
