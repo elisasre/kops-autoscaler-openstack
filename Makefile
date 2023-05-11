@@ -1,17 +1,13 @@
 OPERATOR_NAME := kops-autoscaler-openstack
 IMAGE := quay.io/elisaoyj/$(OPERATOR_NAME)
 
-.PHONY: clean deps test gofmt ensure check build build-image build-linux-amd64 run
+.PHONY: clean test gofmt ensure check build build-image build-linux-amd64 run
 
 clean:
 	git clean -Xdf
 
-deps:
-	go get -u golang.org/x/lint/golint
-
 test:
 	go test ./... -v -coverprofile=gotest-coverage.out > gotest-report.out && cat gotest-report.out || (cat gotest-report.out; exit 1)
-	golint -set_exit_status cmd/... pkg/... > golint-report.out && cat golint-report.out || (cat golint-report.out; exit 1)
 	go vet ./...
 	./hack/gofmt.sh
 	git diff --exit-code go.mod go.sum

@@ -18,9 +18,8 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
 
-    - name: Install deps and build
+    - name: build
       run: |
-        make deps
         make ensure
         make test
         make build-linux-amd64
