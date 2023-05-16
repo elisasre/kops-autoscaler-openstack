@@ -17,7 +17,7 @@ replace (
 	k8s.io/controller-manager => k8s.io/controller-manager v0.27.1
 	k8s.io/cri-api => k8s.io/cri-api v0.27.1
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.27.1
-	k8s.io/kops => github.com/zetaab/kops v1.4.2-0.20230516071424-640f09ed6f0a
+	k8s.io/kops => github.com/zetaab/kops v1.4.2-0.20230516100553-6dd371ad1c43
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.27.1
 	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.27.1
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.27.1
