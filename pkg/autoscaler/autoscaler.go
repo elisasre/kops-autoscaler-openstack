@@ -121,7 +121,7 @@ func Run(opts *Options) error {
 		return fmt.Errorf("error parsing registry path %q: %v", opts.StateStore, err)
 	}
 
-	clientset := vfsclientset.NewVFSClientset(registryBase)
+	clientset := vfsclientset.NewVFSClientset(vfs.Context, registryBase)
 	osASG := &openstackASG{
 		opts:      opts,
 		clientset: clientset,
