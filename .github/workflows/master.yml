@@ -14,7 +14,7 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v3
       with:
-        go-version: '1.20'
+        go-version: '1.21'
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
@@ -25,12 +25,12 @@ jobs:
         make test
         make build-linux-amd64
 
-    - name: Login to Quay.io
-      uses: docker/login-action@v1 
+    - name: Login to Google Artifact Registry
+      uses: docker/login-action@v3
       with:
-        registry: quay.io
-        username: ${{ secrets.QUAY_USERNAME }}
-        password: ${{ secrets.QUAY_TOKEN }}
+        registry: europe-north1-docker.pkg.dev
+        username: _json_key
+        password: ${{ secrets.GAR_JSON_KEY }}
 
     - name: Build and push to registry
       uses: docker/build-push-action@v2
@@ -38,5 +38,5 @@ jobs:
         context: .
         push: true
         tags: |
-          quay.io/elisaoyj/kops-autoscaler-openstack:latest
-          quay.io/elisaoyj/kops-autoscaler-openstack:${{ github.sha }}
+          europe-north1-docker.pkg.dev/sose-sre-5737/sre-public/kops-autoscaler-openstack:latest
+          europe-north1-docker.pkg.dev/sose-sre-5737/sre-public/kops-autoscaler-openstack:${{ github.sha }}
