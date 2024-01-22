@@ -515,8 +515,8 @@ k8s.io/csi-translation-lib v0.29.1 h1:b2tYZnnHyrQVHG6GYel7egmVvKeIlX/xbTNm9ynBSU
 k8s.io/csi-translation-lib v0.29.1/go.mod h1:Zglui6PgFSew8ux50djwZ3PFK6eNrWktid66D7pHDDo=
 k8s.io/klog/v2 v2.120.0 h1:z+q5mfovBj1fKFxiRzsa2DsJLPIVMk/KFL81LMOfK+8=
 k8s.io/klog/v2 v2.120.0/go.mod h1:3Jpz1GvMt720eyJH1ckRHK1EDfpxISzJ7I9OYgaDtPE=
-k8s.io/kops v1.29.0-alpha.3.0.20240121083611-99d2bfd4e354 h1:xmQc7WlmfQ+A9NnW7+pDZdQ0OMGjlvrz9OwlXK6GMRQ=
-k8s.io/kops v1.29.0-alpha.3.0.20240121083611-99d2bfd4e354/go.mod h1:lPAWXyxLnjxNBIvW2e6mQGveGF+OMDnZq4ZEL586Yko=
+k8s.io/kops v1.29.0-alpha.3.0.20240122185612-a7939673f752 h1:RhCdwixxzNzZBnQWuuAqgwyvnEA3EHzjIH+pupc62No=
+k8s.io/kops v1.29.0-alpha.3.0.20240122185612-a7939673f752/go.mod h1:lPAWXyxLnjxNBIvW2e6mQGveGF+OMDnZq4ZEL586Yko=
 k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 h1:aVUu9fTY98ivBPKR9Y5w/AuzbMm96cd3YHRTU83I780=
 k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00/go.mod h1:AsvuZPBlUDVuCdzJ87iajxtXuR9oktsTctW/R9wwouA=
 k8s.io/mount-utils v0.29.1 h1:veXlIm52Y4tm3H0pG03cOdkw0KOJxYDa0fQqhJCoqvQ=
