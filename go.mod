@@ -2,7 +2,7 @@ module github.com/elisasre/kops-autoscaler-openstack
 
 go 1.21
 
-toolchain go1.21.2
+toolchain go1.21.6
 
 replace (
 	k8s.io/api => k8s.io/api v0.29.1
