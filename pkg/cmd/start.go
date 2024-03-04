@@ -12,16 +12,16 @@ import (
 )
 
 func init() {
-	flag.Set("logtostderr", "true")
-	// hack to make flag.Parsed return true such that glog is happy
-	// about the flags having been parsed
-	flag.CommandLine.Parse([]string{})
+	_ = flag.Set("logtostderr", "true")
+	// Hack to make flag.Parsed return true such that glog is happy
+	// about the flags having been parsed.
+	_ = flag.CommandLine.Parse([]string{})
 }
 
-// Execute will execute basically the whole application
+// Execute will execute basically the whole application.
 func Execute() {
 	options := &autoscaler.Options{}
-	flag.Lookup("logtostderr").Value.Set("true")
+	_ = flag.Lookup("logtostderr").Value.Set("true")
 	glog.Infof("Starting application...\n")
 	glog.Flush()
 	rootCmd := &cobra.Command{
@@ -65,10 +65,10 @@ func Execute() {
 
 func validate(options *autoscaler.Options) error {
 	if options.ClusterName == "" {
-		return fmt.Errorf("Please set KOPS_CLUSTER_NAME to env variable or as start flag")
+		return fmt.Errorf("Please set KOPS_CLUSTER_NAME to env variable or as start flag") //nolint: stylecheck
 	}
 	if options.StateStore == "" {
-		return fmt.Errorf("Please set KOPS_STATE_STORE to env variable or as start flag")
+		return fmt.Errorf("Please set KOPS_STATE_STORE to env variable or as start flag") //nolint: stylecheck
 	}
 	// set env variable, needed by kops libraries
 	if os.Getenv("KOPS_STATE_STORE") == "" && options.StateStore != "" {
@@ -78,9 +78,9 @@ func validate(options *autoscaler.Options) error {
 		}
 	}
 
-	if strings.HasPrefix(options.StateStore, "s3://") || strings.HasPrefix(options.StateStore, "do://") {
+	if strings.HasPrefix(options.StateStore, "s3://") || strings.HasPrefix(options.StateStore, "do://") { //nolint: nestif
 		if options.AccessKey == "" {
-			return fmt.Errorf("Please set S3_ACCESS_KEY_ID to env variable or as start flag")
+			return fmt.Errorf("Please set S3_ACCESS_KEY_ID to env variable or as start flag") //nolint: stylecheck
 		}
 
 		if os.Getenv("S3_ACCESS_KEY_ID") == "" && options.AccessKey != "" {
@@ -91,7 +91,7 @@ func validate(options *autoscaler.Options) error {
 		}
 
 		if options.SecretKey == "" {
-			return fmt.Errorf("Please set S3_SECRET_ACCESS_KEY to env variable or as start flag")
+			return fmt.Errorf("Please set S3_SECRET_ACCESS_KEY to env variable or as start flag") //nolint: stylecheck
 		}
 
 		if os.Getenv("S3_SECRET_ACCESS_KEY") == "" && options.SecretKey != "" {
@@ -109,6 +109,6 @@ func validate(options *autoscaler.Options) error {
 		}
 	}
 
-	// TODO: validate openstack env variables
+	// TODO: validate openstack env variables.
 	return nil
 }
