@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	// import pprof package, needed for debugging
-	_ "net/http/pprof"
+	// Import pprof package, needed for debugging.
+	_ "net/http/pprof" //nolint: gosec
 
 	"github.com/golang/glog"
 	"github.com/gophercloud/gophercloud"
@@ -31,7 +31,7 @@ import (
 	"k8s.io/kops/util/pkg/vfs"
 )
 
-// Options contains startup variables from cobra cmd
+// Options contains startup variables from cobra cmd.
 type Options struct {
 	LogLevel            string
 	Sleep               int
@@ -105,20 +105,22 @@ var (
 			Name: "load_balancer_pool_member",
 			Help: "Load balancer pool member",
 		},
-		[]string{"name", "id", "pool_name", "pool_id", "load_balancer_id",
-			"provisioning_status", "operating_status", "weight"},
+		[]string{
+			"name", "id", "pool_name", "pool_id", "load_balancer_id",
+			"provisioning_status", "operating_status", "weight",
+		},
 	)
 )
 
-// Run will execute cluster check in loop periodically
+// Run will execute cluster check in loop periodically.
 func Run(opts *Options) error {
 	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		log.Println(http.ListenAndServe("localhost:6060", nil)) //nolint: gosec
 	}()
 
 	registryBase, err := vfs.Context.BuildVfsPath(opts.StateStore)
 	if err != nil {
-		return fmt.Errorf("error parsing registry path %q: %v", opts.StateStore, err)
+		return fmt.Errorf("error parsing registry path %q: %w", opts.StateStore, err)
 	}
 
 	clientset := vfsclientset.NewVFSClientset(vfs.Context, registryBase)
@@ -128,7 +130,7 @@ func Run(opts *Options) error {
 	}
 
 	http.Handle("/metrics", promhttp.Handler())
-	go http.ListenAndServe(":2112", nil)
+	go http.ListenAndServe(":2112", nil) //nolint: errcheck,gosec
 
 	prometheus.MustRegister(lbActiveConnections)
 	prometheus.MustRegister(lbBytesIn)
@@ -141,7 +143,7 @@ func Run(opts *Options) error {
 	fails := 0
 	for {
 		if fails > 5 {
-			return fmt.Errorf("Too many failed attempts")
+			return fmt.Errorf("too many failed attempts")
 		}
 		ctx := context.Background()
 		time.Sleep(time.Duration(opts.Sleep) * time.Second)
@@ -150,7 +152,7 @@ func Run(opts *Options) error {
 		if osASG.Cloud == nil {
 			cluster, err := osASG.clientset.GetCluster(ctx, osASG.opts.ClusterName)
 			if err != nil {
-				return fmt.Errorf("error initializing cluster %v", err)
+				return fmt.Errorf("error initializing cluster %w", err)
 			}
 
 			cloud, err := cloudup.BuildCloud(cluster)
@@ -176,7 +178,7 @@ func Run(opts *Options) error {
 
 		if needsUpdate {
 			// ApplyClusterCmd is always appending assets
-			// so when dryrun is executed first the assets will be duplicated if we do not set it nil here
+			// so when dryrun is executed first the assets will be duplicated if we do not set it nil here.
 			osASG.ApplyCmd.Assets = nil
 			err = osASG.update(ctx)
 			if err != nil {
@@ -188,7 +190,7 @@ func Run(opts *Options) error {
 
 		// Collecting load balancer metrics is not critical. Don't want to fail on error.
 		if opts.LoadBalancerMetrics {
-			osASG.enableMetrics()
+			_ = osASG.enableMetrics()
 		}
 
 		fails = 0
@@ -198,14 +200,15 @@ func Run(opts *Options) error {
 func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
 	cluster, err := osASG.clientset.GetCluster(ctx, osASG.opts.ClusterName)
 	if err != nil {
-		return fmt.Errorf("error initializing cluster %v", err)
+		return fmt.Errorf("error initializing cluster %w", err)
 	}
 
 	list, err := osASG.clientset.InstanceGroupsFor(cluster).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	var instanceGroups []*kops.InstanceGroup
+
+	instanceGroups := make([]*kops.InstanceGroup, 0, len(list.Items))
 	for i := range list.Items {
 		instanceGroups = append(instanceGroups, &list.Items[i])
 	}
@@ -223,11 +226,15 @@ func (osASG *openstackASG) updateApplyCmd(ctx context.Context) error {
 	return nil
 }
 
-// dryRun scans do we need run update or not
-// currently it supports scaling up and down instances
+// DryRun scans do we need run update or not.
+// Currently it supports scaling up and down instances.
 // we do not use kops update cluster dryrun because it will make lots of API queries against OpenStack.
 func (osASG *openstackASG) dryRun() (bool, error) {
-	osCloud := osASG.Cloud.(openstack.OpenstackCloud)
+	osCloud, ok := osASG.Cloud.(openstack.OpenstackCloud)
+	if !ok {
+		return false, fmt.Errorf("type assertion error")
+	}
+
 	instances, err := osCloud.ListInstances(servers.ListOpts{})
 	if err != nil {
 		return false, err
@@ -244,7 +251,7 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 	for _, instance := range instances {
 		val, ok := instance.Metadata["k8s"]
 		ig, ok2 := instance.Metadata["KopsInstanceGroup"]
-		if ok && ok2 && val == cluster.Name {
+		if ok && ok2 && val == cluster.Name { //nolint: nestif
 			maintenanceVal, ok3 := instance.Metadata["maintenance"]
 			if instance.Status == "SHUTOFF" && (!ok3 || maintenanceVal != "true") {
 				startErr := startstop.Start(osCloud.ComputeClient(), instance.ID).ExtractErr()

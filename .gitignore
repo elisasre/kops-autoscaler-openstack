@@ -1,5 +1,9 @@
+.DS_Store
 bin/*
+vendor/*
 gotest-coverage.out
 gotest-report.out
-golint-report.out
-vendor/*
+.tools/
+/target/
+
+.idea/

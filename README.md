@@ -2,12 +2,12 @@
 
 The purpose of this application is to provide capability to scale cluster up/down in case of need. This application supports currently two use-cases:
 
-- if kops instancegroup minsize is larger than current instances in openstack -> scale up 
+- if kops instancegroup minsize is larger than current instances in openstack -> scale up
 - if kops instancegroup maxsize is smaller than current instances in openstack -> scale down
 
 This application will detect the need of change by running `kops update cluster <cluster>`. Scaling means that this application will execute `kops update cluster <cluster> --yes` under the hood.
 
-This application makes it possible to use `kops rolling-update <cluster>` command in openstack kops. 
+This application makes it possible to use `kops rolling-update <cluster>` command in openstack kops.
 
 ```
 Provide autoscaling capability to kops openstack
@@ -41,20 +41,11 @@ openstack_instance{id="1f8f641f-2f95-4f42-bc69-70fbb9a7eed0",name="nodes-2-test-
 ...
 ```
 
-### Copying bindata from kops
-
-Kops needs its bindata to be compiled and copied under vendor folder.
-
-```
-make copybindata
-make ensure
-```
-
 ### How to install
 
 See Examples
 
-Create secrets, set env variables that you usually use when doing things with kops. 
+Create secrets, set env variables that you usually use when doing things with kops.
 
 ### How to contribute
 

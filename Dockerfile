@@ -10,5 +10,5 @@ FROM scratch
 USER 1001
 WORKDIR /code
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY bin/linux/kops-autoscaler-openstack .
+COPY --from=bin kops-autoscaler-openstack .
 ENTRYPOINT ["/code/kops-autoscaler-openstack"]

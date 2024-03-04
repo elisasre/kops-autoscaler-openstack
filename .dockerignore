@@ -1,7 +1,0 @@
-bin/kops-autoscaler-openstack
-cmd
-examples
-hack
-pkg
-replace
-vendor
