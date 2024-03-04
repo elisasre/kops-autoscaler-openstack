@@ -21,6 +21,9 @@ jobs:
 
       - uses: elisa-actions/setup-go-and-mage@v1
 
+      - name: Ensure go.mod and go.sum are up to date
+        run: mage go:tidyAndVerify
+
       - name: Lint
         run: mage go:lint
 
