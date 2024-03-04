@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build-main:
+  build-master:
     permissions:
       id-token: write
       contents: read
