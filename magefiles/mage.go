@@ -28,6 +28,6 @@ func init() {
 
 	golang.BuildTarget = "./cmd/kops-autoscaler-openstack"
 	golang.RunArgs = []string{"--log-level=4", "--sleep=10"}
-	docker.ImageName = "europe-north1-docker.pkg.dev/sose-sre-5737/sre/kops-autoscaler-openstack"
+	docker.ImageName = "europe-north1-docker.pkg.dev/sose-sre-5737/sre-public/kops-autoscaler-openstack"
 	docker.ProjectUrl = "https://github.com/elisasre/kops-autoscaler-openstack"
 }
