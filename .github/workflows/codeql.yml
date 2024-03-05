@@ -8,12 +8,11 @@ on:
     branches:
     - master
   schedule:
-    - cron: '0 4 * * 0'
+    - cron: '45 4 * * 0'
 
 jobs:
   analyze:
     name: Analyze
-
     runs-on: elisa-normal
     timeout-minutes: 360
     permissions:
