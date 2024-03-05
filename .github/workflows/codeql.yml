@@ -8,12 +8,12 @@ on:
     branches:
     - master
   schedule:
-    - cron: '1 4 * * 0'
+    - cron: '45 4 * * 0'
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: elisa-highmem
+    runs-on: elisa-normal
     timeout-minutes: 360
     permissions:
       security-events: write
