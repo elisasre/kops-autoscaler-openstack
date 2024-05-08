@@ -177,9 +177,6 @@ func Run(opts *Options) error {
 		}
 
 		if needsUpdate {
-			// ApplyClusterCmd is always appending assets
-			// so when dryrun is executed first the assets will be duplicated if we do not set it nil here.
-			osASG.ApplyCmd.Assets = nil
 			err = osASG.update(ctx)
 			if err != nil {
 				glog.Errorf("Error updating cluster %v", err)
