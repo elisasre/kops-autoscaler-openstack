@@ -39,7 +39,7 @@ require (
 	github.com/golang/glog v1.2.1
 	github.com/gophercloud/gophercloud v1.11.0
 	github.com/magefile/mage v1.15.0
-	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/client_golang v1.19.1
 	github.com/spf13/cobra v1.8.0
 	k8s.io/apimachinery v0.30.0
 	k8s.io/kops v0.0.0-00010101000000-000000000000
