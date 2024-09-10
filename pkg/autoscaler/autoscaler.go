@@ -287,7 +287,7 @@ func (osASG *openstackASG) update(ctx context.Context) error {
 	var options fi.RunTasksOptions
 	options.InitDefaults()
 	osASG.ApplyCmd.RunTasksOptions = &options
-	if err := osASG.ApplyCmd.Run(ctx); err != nil {
+	if _, err := osASG.ApplyCmd.Run(ctx); err != nil {
 		return err
 	}
 	return nil
