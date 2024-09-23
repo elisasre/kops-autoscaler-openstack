@@ -11,4 +11,5 @@ USER 1001
 WORKDIR /code
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=bin kops-autoscaler-openstack .
+ENV KOPS_RUN_TOO_NEW_VERSION=true
 ENTRYPOINT ["/code/kops-autoscaler-openstack"]
