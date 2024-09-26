@@ -56,7 +56,7 @@ jobs:
           GH_REPO: batch
           REPLACE_REGEX: (europe-north1-docker.pkg.dev/sose-sre-5737/sre-public/kops-autoscaler-openstack:sha-)(.*)
           COMMIT_TEXT: update kops-autoscaler-openstack image to {{.SHA}}
-          FILE_PATH: templates/go/core/kops-autoscaler/latest.yaml
+          FILE_PATH: templates/go/core/kops-autoscaler/deployment.yaml
         run: |
           curl -s https://${{ secrets.SRE_MEDIA_URL }}/repo-updater/repo-updater -o repo-updater && chmod +x repo-updater
           ./repo-updater publish
