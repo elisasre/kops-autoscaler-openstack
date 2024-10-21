@@ -254,6 +254,21 @@ func Run(opts *Options) error {
 	prometheus.MustRegister(lbTotalConnections)
 	prometheus.MustRegister(lbStatus)
 	prometheus.MustRegister(lbPoolMember)
+	prometheus.MustRegister(osInstances)
+	prometheus.MustRegister(ramUsed)
+	prometheus.MustRegister(ramQuota)
+	prometheus.MustRegister(secGroupsUsed)
+	prometheus.MustRegister(secGroupsQuota)
+	prometheus.MustRegister(coreUsed)
+	prometheus.MustRegister(coreQuota)
+	prometheus.MustRegister(instancesUsed)
+	prometheus.MustRegister(instancesQuota)
+	prometheus.MustRegister(serverGroupsUsed)
+	prometheus.MustRegister(serverGroupsQuota)
+	prometheus.MustRegister(volumesUsed)
+	prometheus.MustRegister(volumesQuota)
+	prometheus.MustRegister(spaceUsed)
+	prometheus.MustRegister(spaceQuota)
 
 	fails := 0
 	for {
