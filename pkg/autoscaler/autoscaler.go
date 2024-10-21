@@ -254,7 +254,6 @@ func Run(opts *Options) error {
 	prometheus.MustRegister(lbTotalConnections)
 	prometheus.MustRegister(lbStatus)
 	prometheus.MustRegister(lbPoolMember)
-	prometheus.MustRegister(osInstances)
 	prometheus.MustRegister(ramUsed)
 	prometheus.MustRegister(ramQuota)
 	prometheus.MustRegister(secGroupsUsed)
