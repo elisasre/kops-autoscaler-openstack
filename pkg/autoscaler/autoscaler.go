@@ -12,12 +12,14 @@ import (
 	_ "net/http/pprof" //nolint: gosec
 
 	"github.com/golang/glog"
-	"github.com/gophercloud/gophercloud"
-	openstackv2 "github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/loadbalancers"
-	"github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/pools"
+	"github.com/gophercloud/gophercloud/v2"
+	openstackv2 "github.com/gophercloud/gophercloud/v2/openstack"
+	cinderquota "github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/quotasets"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/quotasets"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/loadbalancers"
+	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/pools"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -36,6 +38,7 @@ type Options struct {
 	LogLevel            string
 	Sleep               int
 	LoadBalancerMetrics bool
+	QuotaMetrics        bool
 	StateStore          string
 	AccessKey           string
 	SecretKey           string
@@ -109,6 +112,118 @@ var (
 			"name", "id", "pool_name", "pool_id", "load_balancer_id",
 			"provisioning_status", "operating_status", "weight",
 		},
+	)
+
+	ramUsed = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_ram_used",
+			Help: "Openstack ram used",
+		},
+		[]string{"project_id"},
+	)
+
+	ramQuota = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_ram_quota",
+			Help: "Openstack ram quota",
+		},
+		[]string{"project_id"},
+	)
+
+	secGroupsUsed = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_security_groups_used",
+			Help: "Openstack security groups used",
+		},
+		[]string{"project_id"},
+	)
+
+	secGroupsQuota = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_security_groups_quota",
+			Help: "Openstack security groups quota",
+		},
+		[]string{"project_id"},
+	)
+
+	coreUsed = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_cores_used",
+			Help: "Openstack cores used",
+		},
+		[]string{"project_id"},
+	)
+
+	coreQuota = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_cores_quota",
+			Help: "Openstack cores quota",
+		},
+		[]string{"project_id"},
+	)
+
+	instancesUsed = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_instances_used",
+			Help: "Openstack instances used",
+		},
+		[]string{"project_id"},
+	)
+
+	instancesQuota = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_instances_quota",
+			Help: "Openstack instances quota",
+		},
+		[]string{"project_id"},
+	)
+
+	serverGroupsUsed = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_server_groups_used",
+			Help: "Openstack server groups used",
+		},
+		[]string{"project_id"},
+	)
+
+	serverGroupsQuota = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_server_groups_quota",
+			Help: "Openstack server groups quota",
+		},
+		[]string{"project_id"},
+	)
+
+	volumesUsed = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_volumes_used",
+			Help: "Openstack volumes used",
+		},
+		[]string{"project_id"},
+	)
+
+	volumesQuota = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_volumes_quota",
+			Help: "Openstack volumes quota",
+		},
+		[]string{"project_id"},
+	)
+
+	spaceUsed = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_volume_gigabytes_used",
+			Help: "Openstack space used",
+		},
+		[]string{"project_id"},
+	)
+
+	spaceQuota = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openstack_volume_gigabytes_quota",
+			Help: "Openstack space quota",
+		},
+		[]string{"project_id"},
 	)
 )
 
@@ -185,9 +300,9 @@ func Run(opts *Options) error {
 			}
 		}
 
-		// Collecting load balancer metrics is not critical. Don't want to fail on error.
-		if opts.LoadBalancerMetrics {
-			_ = osASG.enableMetrics()
+		// Collecting load balancer / quota metrics is not critical. Don't want to fail on error.
+		if opts.LoadBalancerMetrics || opts.QuotaMetrics {
+			_ = osASG.enableMetrics(opts.LoadBalancerMetrics, opts.QuotaMetrics)
 		}
 
 		fails = 0
@@ -293,38 +408,109 @@ func (osASG *openstackASG) update(ctx context.Context) error {
 	return nil
 }
 
-func (osASG *openstackASG) enableMetrics() error {
+func (osASG *openstackASG) enableMetrics(lbMetrics, quotaMetrics bool) error {
+	ctx := context.Background()
 	authOpts, err := openstackv2.AuthOptionsFromEnv()
 	if err != nil {
 		glog.Errorf("Error building auth options from env %v", err)
 		return err
 	}
-	provider, err := openstackv2.AuthenticatedClient(authOpts)
+	provider, err := openstackv2.AuthenticatedClient(ctx, authOpts)
 	if err != nil {
 		glog.Errorf("Error building openstack authenticated client %v", err)
 		return err
 	}
-	client, err := openstackv2.NewLoadBalancerV2(provider, gophercloud.EndpointOpts{})
-	if err != nil {
-		glog.Errorf("Error building openstack load balancer client %v", err)
-		return err
+
+	if lbMetrics {
+		client, err := openstackv2.NewLoadBalancerV2(provider, gophercloud.EndpointOpts{})
+		if err != nil {
+			glog.Errorf("Error building openstack load balancer client %v", err)
+			return err
+		}
+
+		err = osASG.getLoadBalancerMetrics(ctx, client)
+		if err != nil {
+			return err
+		}
+
+		err = osASG.getMemberMetrics(ctx, client)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = osASG.getLoadBalancerMetrics(client)
-	if err != nil {
-		return err
-	}
+	if quotaMetrics {
+		computeClient, err := openstackv2.NewComputeV2(provider, gophercloud.EndpointOpts{
+			Type: "compute",
+		})
+		if err != nil {
+			glog.Errorf("Error building openstack compute client %v", err)
+			return err
+		}
 
-	err = osASG.getMemberMetrics(client)
-	if err != nil {
-		return err
+		err = osASG.getComputeQuota(ctx, computeClient, authOpts.TenantID)
+		if err != nil {
+			glog.Errorf("Error fetching compute quota %v", err)
+			return err
+		}
+
+		volumeClient, err := openstackv2.NewBlockStorageV3(provider, gophercloud.EndpointOpts{
+			Type: "volumev3",
+		})
+		if err != nil {
+			glog.Errorf("Error building openstack volume client %v", err)
+			return err
+		}
+
+		err = osASG.getVolumeQuotas(ctx, volumeClient, authOpts.TenantID)
+		if err != nil {
+			glog.Errorf("Error fetching volume quota %v", err)
+		}
 	}
 
 	return nil
 }
 
-func (osASG *openstackASG) getLoadBalancerMetrics(client *gophercloud.ServiceClient) error {
-	allPages, err := loadbalancers.List(client, loadbalancers.ListOpts{}).AllPages()
+func (osASG *openstackASG) getComputeQuota(ctx context.Context, client *gophercloud.ServiceClient, tenantID string) error {
+	quotaset, err := quotasets.GetDetail(ctx, client, tenantID).Extract()
+	if err != nil {
+		return err
+	}
+
+	ramUsed.WithLabelValues(tenantID).Set(float64(quotaset.RAM.InUse + quotaset.RAM.Reserved))
+	ramQuota.WithLabelValues(tenantID).Set(float64(quotaset.RAM.Limit))
+
+	secGroupsUsed.WithLabelValues(tenantID).Set(float64(quotaset.SecurityGroups.InUse + quotaset.SecurityGroups.Reserved))
+	secGroupsQuota.WithLabelValues(tenantID).Set(float64(quotaset.SecurityGroups.Limit))
+
+	coreUsed.WithLabelValues(tenantID).Set(float64(quotaset.Cores.InUse + quotaset.Cores.Reserved))
+	coreQuota.WithLabelValues(tenantID).Set(float64(quotaset.Cores.Limit))
+
+	instancesUsed.WithLabelValues(tenantID).Set(float64(quotaset.Instances.InUse + quotaset.Instances.Reserved))
+	instancesQuota.WithLabelValues(tenantID).Set(float64(quotaset.Instances.Limit))
+
+	serverGroupsUsed.WithLabelValues(tenantID).Set(float64(quotaset.ServerGroups.InUse + quotaset.ServerGroups.Reserved))
+	serverGroupsQuota.WithLabelValues(tenantID).Set(float64(quotaset.ServerGroups.Limit))
+	return nil
+}
+
+func (osASG *openstackASG) getVolumeQuotas(ctx context.Context, client *gophercloud.ServiceClient, tenantID string) error {
+	quotaset, err := cinderquota.GetUsage(ctx, client, tenantID).Extract()
+	if err != nil {
+		return err
+	}
+
+	volumesUsed.WithLabelValues(tenantID).Set(float64(quotaset.Volumes.InUse + quotaset.Volumes.Allocated + quotaset.Volumes.Reserved))
+	volumesQuota.WithLabelValues(tenantID).Set(float64(quotaset.Volumes.Limit))
+
+	spaceUsed.WithLabelValues(tenantID).Set(float64(quotaset.Gigabytes.InUse + quotaset.Gigabytes.Allocated + quotaset.Gigabytes.Reserved))
+	spaceQuota.WithLabelValues(tenantID).Set(float64(quotaset.Gigabytes.Limit))
+
+	return nil
+}
+
+func (osASG *openstackASG) getLoadBalancerMetrics(ctx context.Context, client *gophercloud.ServiceClient) error {
+	allPages, err := loadbalancers.List(client, loadbalancers.ListOpts{}).AllPages(ctx)
 	if err != nil {
 		glog.Errorf("Error listing load balancer pages %v", err)
 		return err
@@ -338,7 +524,7 @@ func (osASG *openstackASG) getLoadBalancerMetrics(client *gophercloud.ServiceCli
 	lbStatus.Reset()
 	for _, lb := range allLoadBalancers {
 		lbStatus.WithLabelValues(lb.Name, lb.ID, lb.ProvisioningStatus, lb.OperatingStatus).Set(float64(1))
-		stats, err := loadbalancers.GetStats(client, lb.ID).Extract()
+		stats, err := loadbalancers.GetStats(ctx, client, lb.ID).Extract()
 		if err != nil {
 			glog.Errorf("Error getting load balancer stats %v", err)
 			continue
@@ -355,8 +541,8 @@ func (osASG *openstackASG) getLoadBalancerMetrics(client *gophercloud.ServiceCli
 	return nil
 }
 
-func (osASG *openstackASG) getMemberMetrics(client *gophercloud.ServiceClient) error {
-	allPages, err := pools.List(client, pools.ListOpts{}).AllPages()
+func (osASG *openstackASG) getMemberMetrics(ctx context.Context, client *gophercloud.ServiceClient) error {
+	allPages, err := pools.List(client, pools.ListOpts{}).AllPages(ctx)
 	if err != nil {
 		glog.Errorf("Error listing load balancer pool pages %v", err)
 		return err
@@ -369,7 +555,7 @@ func (osASG *openstackASG) getMemberMetrics(client *gophercloud.ServiceClient) e
 
 	lbPoolMember.Reset()
 	for _, pool := range allPools {
-		allPages, err := pools.ListMembers(client, pool.ID, pools.ListMembersOpts{}).AllPages()
+		allPages, err := pools.ListMembers(client, pool.ID, pools.ListMembersOpts{}).AllPages(ctx)
 		if err != nil {
 			glog.Errorf("Error listing load balancer member pages %v", err)
 			return err
