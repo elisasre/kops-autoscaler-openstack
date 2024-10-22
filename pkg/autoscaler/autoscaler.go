@@ -119,7 +119,7 @@ var (
 			Name: "openstack_ram_used",
 			Help: "Openstack ram used",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	ramQuota = prometheus.NewGaugeVec(
@@ -127,7 +127,7 @@ var (
 			Name: "openstack_ram_quota",
 			Help: "Openstack ram quota",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	secGroupsUsed = prometheus.NewGaugeVec(
@@ -135,7 +135,7 @@ var (
 			Name: "openstack_security_groups_used",
 			Help: "Openstack security groups used",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	secGroupsQuota = prometheus.NewGaugeVec(
@@ -143,7 +143,7 @@ var (
 			Name: "openstack_security_groups_quota",
 			Help: "Openstack security groups quota",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	coreUsed = prometheus.NewGaugeVec(
@@ -151,7 +151,7 @@ var (
 			Name: "openstack_cores_used",
 			Help: "Openstack cores used",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	coreQuota = prometheus.NewGaugeVec(
@@ -159,7 +159,7 @@ var (
 			Name: "openstack_cores_quota",
 			Help: "Openstack cores quota",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	instancesUsed = prometheus.NewGaugeVec(
@@ -167,7 +167,7 @@ var (
 			Name: "openstack_instances_used",
 			Help: "Openstack instances used",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	instancesQuota = prometheus.NewGaugeVec(
@@ -175,7 +175,7 @@ var (
 			Name: "openstack_instances_quota",
 			Help: "Openstack instances quota",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	serverGroupsUsed = prometheus.NewGaugeVec(
@@ -183,7 +183,7 @@ var (
 			Name: "openstack_server_groups_used",
 			Help: "Openstack server groups used",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	serverGroupsQuota = prometheus.NewGaugeVec(
@@ -191,7 +191,7 @@ var (
 			Name: "openstack_server_groups_quota",
 			Help: "Openstack server groups quota",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	volumesUsed = prometheus.NewGaugeVec(
@@ -199,7 +199,7 @@ var (
 			Name: "openstack_volumes_used",
 			Help: "Openstack volumes used",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	volumesQuota = prometheus.NewGaugeVec(
@@ -207,7 +207,7 @@ var (
 			Name: "openstack_volumes_quota",
 			Help: "Openstack volumes quota",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	spaceUsed = prometheus.NewGaugeVec(
@@ -215,7 +215,7 @@ var (
 			Name: "openstack_volume_gigabytes_used",
 			Help: "Openstack space used",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 
 	spaceQuota = prometheus.NewGaugeVec(
@@ -223,7 +223,7 @@ var (
 			Name: "openstack_volume_gigabytes_quota",
 			Help: "Openstack space quota",
 		},
-		[]string{"project_id"},
+		[]string{"project_id", "project_name"},
 	)
 )
 
@@ -462,7 +462,7 @@ func (osASG *openstackASG) enableMetrics(lbMetrics, quotaMetrics bool) error {
 			return err
 		}
 
-		err = osASG.getComputeQuota(ctx, computeClient, authOpts.TenantID)
+		err = osASG.getComputeQuota(ctx, computeClient, authOpts.TenantID, authOpts.TenantName)
 		if err != nil {
 			glog.Errorf("Error fetching compute quota %v", err)
 			return err
@@ -476,7 +476,7 @@ func (osASG *openstackASG) enableMetrics(lbMetrics, quotaMetrics bool) error {
 			return err
 		}
 
-		err = osASG.getVolumeQuotas(ctx, volumeClient, authOpts.TenantID)
+		err = osASG.getVolumeQuotas(ctx, volumeClient, authOpts.TenantID, authOpts.TenantName)
 		if err != nil {
 			glog.Errorf("Error fetching volume quota %v", err)
 		}
@@ -485,40 +485,40 @@ func (osASG *openstackASG) enableMetrics(lbMetrics, quotaMetrics bool) error {
 	return nil
 }
 
-func (osASG *openstackASG) getComputeQuota(ctx context.Context, client *gophercloud.ServiceClient, tenantID string) error {
+func (osASG *openstackASG) getComputeQuota(ctx context.Context, client *gophercloud.ServiceClient, tenantID string, tenantName string) error {
 	quotaset, err := quotasets.GetDetail(ctx, client, tenantID).Extract()
 	if err != nil {
 		return err
 	}
 
-	ramUsed.WithLabelValues(tenantID).Set(float64(quotaset.RAM.InUse + quotaset.RAM.Reserved))
-	ramQuota.WithLabelValues(tenantID).Set(float64(quotaset.RAM.Limit))
+	ramUsed.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.RAM.InUse + quotaset.RAM.Reserved))
+	ramQuota.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.RAM.Limit))
 
-	secGroupsUsed.WithLabelValues(tenantID).Set(float64(quotaset.SecurityGroups.InUse + quotaset.SecurityGroups.Reserved))
-	secGroupsQuota.WithLabelValues(tenantID).Set(float64(quotaset.SecurityGroups.Limit))
+	secGroupsUsed.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.SecurityGroups.InUse + quotaset.SecurityGroups.Reserved))
+	secGroupsQuota.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.SecurityGroups.Limit))
 
-	coreUsed.WithLabelValues(tenantID).Set(float64(quotaset.Cores.InUse + quotaset.Cores.Reserved))
-	coreQuota.WithLabelValues(tenantID).Set(float64(quotaset.Cores.Limit))
+	coreUsed.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Cores.InUse + quotaset.Cores.Reserved))
+	coreQuota.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Cores.Limit))
 
-	instancesUsed.WithLabelValues(tenantID).Set(float64(quotaset.Instances.InUse + quotaset.Instances.Reserved))
-	instancesQuota.WithLabelValues(tenantID).Set(float64(quotaset.Instances.Limit))
+	instancesUsed.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Instances.InUse + quotaset.Instances.Reserved))
+	instancesQuota.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Instances.Limit))
 
-	serverGroupsUsed.WithLabelValues(tenantID).Set(float64(quotaset.ServerGroups.InUse + quotaset.ServerGroups.Reserved))
-	serverGroupsQuota.WithLabelValues(tenantID).Set(float64(quotaset.ServerGroups.Limit))
+	serverGroupsUsed.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.ServerGroups.InUse + quotaset.ServerGroups.Reserved))
+	serverGroupsQuota.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.ServerGroups.Limit))
 	return nil
 }
 
-func (osASG *openstackASG) getVolumeQuotas(ctx context.Context, client *gophercloud.ServiceClient, tenantID string) error {
+func (osASG *openstackASG) getVolumeQuotas(ctx context.Context, client *gophercloud.ServiceClient, tenantID string, tenantName string) error {
 	quotaset, err := cinderquota.GetUsage(ctx, client, tenantID).Extract()
 	if err != nil {
 		return err
 	}
 
-	volumesUsed.WithLabelValues(tenantID).Set(float64(quotaset.Volumes.InUse + quotaset.Volumes.Allocated + quotaset.Volumes.Reserved))
-	volumesQuota.WithLabelValues(tenantID).Set(float64(quotaset.Volumes.Limit))
+	volumesUsed.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Volumes.InUse + quotaset.Volumes.Allocated + quotaset.Volumes.Reserved))
+	volumesQuota.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Volumes.Limit))
 
-	spaceUsed.WithLabelValues(tenantID).Set(float64(quotaset.Gigabytes.InUse + quotaset.Gigabytes.Allocated + quotaset.Gigabytes.Reserved))
-	spaceQuota.WithLabelValues(tenantID).Set(float64(quotaset.Gigabytes.Limit))
+	spaceUsed.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Gigabytes.InUse + quotaset.Gigabytes.Allocated + quotaset.Gigabytes.Reserved))
+	spaceQuota.WithLabelValues(tenantID, tenantName).Set(float64(quotaset.Gigabytes.Limit))
 
 	return nil
 }
