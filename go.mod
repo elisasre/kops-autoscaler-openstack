@@ -34,7 +34,7 @@ replace (
 )
 
 require (
-	github.com/elisasre/mageutil v1.7.0
+	github.com/elisasre/mageutil v1.7.1
 	github.com/golang/glog v1.2.2
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/gophercloud/v2 v2.2.0

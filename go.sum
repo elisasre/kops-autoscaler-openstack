@@ -288,8 +288,8 @@ github.com/docker/distribution v2.8.3+incompatible h1:AtKxIZ36LoNK51+Z6RpzLpddBi
 github.com/docker/distribution v2.8.3+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/docker-credential-helpers v0.8.0 h1:YQFtbBQb4VrpoPxhFuzEBPQ9E16qz5SpHLS+uswaCp8=
 github.com/docker/docker-credential-helpers v0.8.0/go.mod h1:UGFXcuoQ5TxPiB54nHOZ32AWRqQdECoh/Mg0AlEYb40=
-github.com/elisasre/mageutil v1.7.0 h1:38i/SBr9y5e6CZ4E2/+U/HJq9XYyY0AF9JL5xZAlK7s=
-github.com/elisasre/mageutil v1.7.0/go.mod h1:zuKZV939dV8tfFNy/4veDwG2rTZQtie1iHl0gbd2RaY=
+github.com/elisasre/mageutil v1.7.1 h1:KCcOP522oM9x/plK12V1IVcHzTidgb7s9GxzZ7jHezo=
+github.com/elisasre/mageutil v1.7.1/go.mod h1:zuKZV939dV8tfFNy/4veDwG2rTZQtie1iHl0gbd2RaY=
 github.com/emicklei/go-restful/v3 v3.12.0 h1:y2DdzBAURM29NFF94q6RaY4vjIH1rtwDapwQtU84iWk=
 github.com/emicklei/go-restful/v3 v3.12.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/emirpasic/gods v1.12.0/go.mod h1:YfzfFFoVP/catgzJb4IKIqXjX78Ha8FMSDh3ymbK86o=
