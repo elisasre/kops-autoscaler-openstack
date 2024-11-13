@@ -12,7 +12,6 @@ import (
 	_ "net/http/pprof" //nolint: gosec
 
 	"github.com/golang/glog"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/gophercloud/gophercloud/v2"
 	openstackv2 "github.com/gophercloud/gophercloud/v2/openstack"
 	cinderquota "github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/quotasets"
@@ -380,7 +379,7 @@ func (osASG *openstackASG) dryRun() (bool, error) {
 		if ok && ok2 && val == cluster.Name { //nolint: nestif
 			maintenanceVal, ok3 := instance.Metadata["maintenance"]
 			if instance.Status == "SHUTOFF" && (!ok3 || maintenanceVal != "true") {
-				startErr := startstop.Start(osCloud.ComputeClient(), instance.ID).ExtractErr()
+				startErr := servers.Start(context.TODO(), osCloud.ComputeClient(), instance.ID).ExtractErr()
 				if startErr != nil {
 					glog.Errorf("Could not start server %v", startErr)
 				} else {
