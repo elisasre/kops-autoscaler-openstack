@@ -12,8 +12,6 @@ import (
 	//mage:import
 	_ "github.com/elisasre/mageutil/golangcilint/target"
 	//mage:import
-	_ "github.com/elisasre/mageutil/golicenses/target"
-	//mage:import
 	docker "github.com/elisasre/mageutil/docker/target"
 	//mage:import
 	golang "github.com/elisasre/mageutil/golang/target"

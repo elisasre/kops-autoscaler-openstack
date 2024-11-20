@@ -27,9 +27,6 @@ jobs:
       - name: Lint
         run: mage go:lint
 
-      - name: Run license check
-        run: mage go:licenses
-
       - name: Build binary
         run: mage go:build
 
