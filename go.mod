@@ -1,6 +1,7 @@
 module github.com/elisasre/kops-autoscaler-openstack
 
-go 1.23.5
+go 1.24.0
+
 replace (
 	k8s.io/api => k8s.io/api v0.31.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.5
