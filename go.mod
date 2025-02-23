@@ -36,7 +36,7 @@ require (
 	github.com/golang/glog v1.2.4
 	github.com/gophercloud/gophercloud/v2 v2.5.0
 	github.com/magefile/mage v1.15.0
-	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_golang v1.21.0
 	github.com/spf13/cobra v1.9.1
 	k8s.io/apimachinery v0.31.5
 	k8s.io/kops v1.31.0
@@ -212,7 +212,7 @@ require (
 	github.com/karamaru-alpha/copyloopvar v1.2.1 // indirect
 	github.com/kisielk/errcheck v1.8.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.5 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.10 // indirect
