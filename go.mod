@@ -36,7 +36,7 @@ require (
 	github.com/golang/glog v1.2.4
 	github.com/gophercloud/gophercloud/v2 v2.6.0
 	github.com/magefile/mage v1.15.0
-	github.com/prometheus/client_golang v1.21.0
+	github.com/prometheus/client_golang v1.21.1
 	github.com/spf13/cobra v1.9.1
 	k8s.io/apimachinery v0.31.5
 	k8s.io/kops v1.31.0
