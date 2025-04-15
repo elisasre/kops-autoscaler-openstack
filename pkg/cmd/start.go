@@ -66,10 +66,10 @@ func Execute() {
 
 func validate(options *autoscaler.Options) error {
 	if options.ClusterName == "" {
-		return fmt.Errorf("Please set KOPS_CLUSTER_NAME to env variable or as start flag") //nolint: stylecheck
+		return fmt.Errorf("please set KOPS_CLUSTER_NAME to env variable or as start flag")
 	}
 	if options.StateStore == "" {
-		return fmt.Errorf("Please set KOPS_STATE_STORE to env variable or as start flag") //nolint: stylecheck
+		return fmt.Errorf("please set KOPS_STATE_STORE to env variable or as start flag")
 	}
 	// set env variable, needed by kops libraries
 	if os.Getenv("KOPS_STATE_STORE") == "" && options.StateStore != "" {
@@ -81,7 +81,7 @@ func validate(options *autoscaler.Options) error {
 
 	if strings.HasPrefix(options.StateStore, "s3://") || strings.HasPrefix(options.StateStore, "do://") { //nolint: nestif
 		if options.AccessKey == "" {
-			return fmt.Errorf("Please set S3_ACCESS_KEY_ID to env variable or as start flag") //nolint: stylecheck
+			return fmt.Errorf("please set S3_ACCESS_KEY_ID to env variable or as start flag")
 		}
 
 		if os.Getenv("S3_ACCESS_KEY_ID") == "" && options.AccessKey != "" {
@@ -92,7 +92,7 @@ func validate(options *autoscaler.Options) error {
 		}
 
 		if options.SecretKey == "" {
-			return fmt.Errorf("Please set S3_SECRET_ACCESS_KEY to env variable or as start flag") //nolint: stylecheck
+			return fmt.Errorf("please set S3_SECRET_ACCESS_KEY to env variable or as start flag")
 		}
 
 		if os.Getenv("S3_SECRET_ACCESS_KEY") == "" && options.SecretKey != "" {

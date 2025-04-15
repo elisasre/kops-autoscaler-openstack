@@ -9,8 +9,8 @@ import (
 
 	//mage:import
 	_ "github.com/elisasre/mageutil/git/target"
-	//mage:import
-	_ "github.com/elisasre/mageutil/golangcilint/target"
+	//mage:import go
+	_ "github.com/elisasre/mageutil/tool/golangcilint"
 	//mage:import
 	docker "github.com/elisasre/mageutil/docker/target"
 	//mage:import
