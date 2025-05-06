@@ -10,3 +10,6 @@ updates:
     schedule:
       interval: "weekly"
       day: "sunday"
+    ignore:
+      - dependency-name: "k8s.io/*"
+    open-pull-requests-limit: 10
