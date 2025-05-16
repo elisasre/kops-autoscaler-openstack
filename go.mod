@@ -38,7 +38,6 @@ require (
 	github.com/golang/glog v1.2.5
 	github.com/gophercloud/gophercloud/v2 v2.7.0
 	github.com/magefile/mage v1.15.0
-	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/cobra v1.9.1
 	k8s.io/apimachinery v0.32.3
 	k8s.io/kops v1.32.0-beta.1.0.20250310090746-9aaf9d98ab6d
@@ -268,6 +267,7 @@ require (
 	github.com/pkg/sftp v1.13.7 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polyfloyd/go-errorlint v1.8.0 // indirect
+	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
